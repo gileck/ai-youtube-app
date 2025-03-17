@@ -30,3 +30,6 @@ export async function fetchVideoDetails(videoIdOrUrl: string): Promise<YouTubeRe
     };
   }
 }
+
+// Re-export the type for use in components
+export type { YouTubeVideoDetails };

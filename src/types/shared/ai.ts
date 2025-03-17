@@ -35,7 +35,7 @@ export interface AIActionResponse {
   error?: {
     code: string;
     message: string;
-    details?: any;
+    details?: Record<string, unknown>;
   };
 }
 

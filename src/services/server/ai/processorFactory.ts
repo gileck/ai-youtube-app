@@ -47,7 +47,14 @@ const summaryProcessor: AIActionProcessor = {
     const estimatedChapterSummariesLength = chapterContents.reduce(
       (total, chapter) => total + Math.ceil(chapter.content.length * 0.2), 0
     );
-    const finalSummaryPrompt = `Create a concise overall summary based on these chapter summaries:\n\n[Chapter summaries will go here, estimated length: ${estimatedChapterSummariesLength} chars]`;
+    
+    // Adjust the estimated length based on maxLength parameter if provided
+    const maxLength = params.type === 'summary' && 'maxLength' in params ? params.maxLength : undefined;
+    const adjustedLength = maxLength && maxLength < estimatedChapterSummariesLength 
+      ? maxLength 
+      : estimatedChapterSummariesLength;
+    
+    const finalSummaryPrompt = `Create a concise overall summary based on these chapter summaries:\n\n[Chapter summaries will go here, estimated length: ${adjustedLength} chars]`;
     const finalSummaryCost = adapter.estimateCost(finalSummaryPrompt, model).totalCost;
     
     // Return total estimated cost
@@ -78,7 +85,9 @@ const summaryProcessor: AIActionProcessor = {
       .map(result => `Chapter: ${result.title}\nSummary: ${result.summary}`)
       .join('\n\n');
     
-    const finalSummaryPrompt = `Create a concise overall summary based on these chapter summaries:\n\n${chapterSummariesText}`;
+    // Apply maxLength parameter if provided
+    const maxLength = params.type === 'summary' && 'maxLength' in params ? params.maxLength : undefined;
+    const finalSummaryPrompt = `Create a concise overall summary based on these chapter summaries${maxLength ? ` with a maximum length of ${maxLength} characters` : ''}:\n\n${chapterSummariesText}`;
     const finalSummaryResponse = await adapter.processPrompt(finalSummaryPrompt, model);
     
     // Calculate total cost
@@ -104,31 +113,25 @@ const summaryProcessor: AIActionProcessor = {
 const questionProcessor: AIActionProcessor = {
   name: 'question',
   
-  estimateCost: (fullTranscript, chapterContents, model, params) => {
-    if (params.type !== 'question') {
-      throw new Error('Invalid params type for question processor');
-    }
-    
+  estimateCost: (fullTranscript, chapterContents, model, _params) => {
     // Get the appropriate adapter for this model
     const adapter = getAdapterForModel(model);
     
     // Create the prompt
-    const prompt = `Based on the following transcript, answer this question: "${params.question}"\n\nTranscript:\n${fullTranscript}`;
+    const question = _params.type === 'question' ? _params.question : 'unknown question';
+    const prompt = `Based on the following transcript, answer this question: "${question}"\n\nTranscript:\n${fullTranscript}`;
     
     // Estimate cost
     return adapter.estimateCost(prompt, model).totalCost;
   },
   
-  process: async (fullTranscript, chapterContents, model, params) => {
-    if (params.type !== 'question') {
-      throw new Error('Invalid params type for question processor');
-    }
-    
+  process: async (fullTranscript, chapterContents, model, _params) => {
     // Get the appropriate adapter for this model
     const adapter = getAdapterForModel(model);
     
     // Create the prompt
-    const prompt = `Based on the following transcript, answer this question: "${params.question}"\n\nTranscript:\n${fullTranscript}`;
+    const question = _params.type === 'question' ? _params.question : 'unknown question';
+    const prompt = `Based on the following transcript, answer this question: "${question}"\n\nTranscript:\n${fullTranscript}`;
     
     // Process the prompt
     const response = await adapter.processPrompt(prompt, model);
@@ -145,32 +148,35 @@ const questionProcessor: AIActionProcessor = {
 const keypointsProcessor: AIActionProcessor = {
   name: 'keypoints',
   
-  estimateCost: (fullTranscript, chapterContents, model, params) => {
+  estimateCost: (fullTranscript, chapterContents, model, _params) => {
     // Get the appropriate adapter for this model
     const adapter = getAdapterForModel(model);
     
     // Create the prompt
-    const count = params.type === 'keypoints' && params.count ? params.count : 10;
+    const count = _params.type === 'keypoints' && 'count' in _params ? _params.count : 10;
     const prompt = `Extract the ${count} most important key points from the following transcript:\n\n${fullTranscript}`;
     
     // Estimate cost
     return adapter.estimateCost(prompt, model).totalCost;
   },
   
-  process: async (fullTranscript, chapterContents, model, params) => {
+  process: async (fullTranscript, chapterContents, model, _params) => {
     // Get the appropriate adapter for this model
     const adapter = getAdapterForModel(model);
     
     // Create the prompt
-    const count = params.type === 'keypoints' && params.count ? params.count : 10;
+    const count = _params.type === 'keypoints' && 'count' in _params ? _params.count : 10;
     const prompt = `Extract the ${count} most important key points from the following transcript. Format each key point as a bullet point starting with "- ":\n\n${fullTranscript}`;
     
     // Process the prompt
     const response = await adapter.processPrompt(prompt, model);
     
+    // Split response into individual keypoints
+    const keypoints = response.text.split('\n').filter(keypoint => keypoint.startsWith('- '));
+    
     // Return result
     return {
-      result: response.text,
+      result: keypoints.join('\n'),
       cost: response.cost.totalCost
     };
   }

@@ -32,7 +32,7 @@ export class ApiClient {
       }
       this.options.onCacheMiss();
       return null;
-    } catch (_error) {
+    } catch {
       this.options.onCacheMiss();
       return null;
     }

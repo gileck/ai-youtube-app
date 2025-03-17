@@ -6,8 +6,12 @@ import AppLayout from '../../components/layout/AppLayout';
 import { fetchSearchResults, YouTubeSearchResult } from '../../services/server/youtube/searchService';
 
 // This is a server component that handles search
-export default async function SearchPage({ searchParams }: { searchParams: { q: string } }) {
-  const query = searchParams.q || '';
+export default async function SearchPage(props: { 
+  searchParams: { q?: string } 
+}) {
+  // In Next.js 15, searchParams is asynchronous and must be awaited
+  const { searchParams } = props;
+  const query = (await searchParams)?.q || '';
   
   // Fetch search results from the YouTube API
   let searchResults: YouTubeSearchResult[] = [];

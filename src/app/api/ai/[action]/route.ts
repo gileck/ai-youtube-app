@@ -11,8 +11,9 @@ import { AIActionParams } from '../../../../types/shared/ai';
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { action: string } }
+  context: { params: { action: string } }
 ) {
+  const { params } = context;
   try {
     // Get action type from route parameter
     const action = params.action;

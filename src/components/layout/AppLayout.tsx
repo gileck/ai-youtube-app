@@ -1,3 +1,5 @@
+'use client';
+
 import React, { ReactNode } from 'react';
 import { Box, Container, CssBaseline, ThemeProvider, createTheme } from '@mui/material';
 import Header from './Header';

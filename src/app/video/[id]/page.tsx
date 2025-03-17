@@ -7,8 +7,12 @@ import { fetchVideoDetails, YouTubeVideoDetails } from '../../../services/server
 import AppLayout from '../../../components/layout/AppLayout';
 
 // This is a server component that fetches video data
-export default async function VideoPage({ params }: { params: { id: string } }) {
-  const videoId = params.id;
+export default async function VideoPage(props: { 
+  params: { id: string } 
+}) {
+  // In Next.js 15, params is asynchronous and must be awaited
+  const { params } = props;
+  const videoId = (await params)?.id;
   
   // Fetch video data from the YouTube API
   let videoData: YouTubeVideoDetails | null = null;
