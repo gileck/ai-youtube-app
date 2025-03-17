@@ -1,103 +1,175 @@
-import Image from "next/image";
+import React from 'react';
+import { Box, Container, Typography, TextField, Button, Grid, Card, CardMedia, CardContent, InputAdornment } from '@mui/material';
+import SearchIcon from '@mui/icons-material/Search';
+import Link from 'next/link';
+import AppLayout from '../components/layout/AppLayout';
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  // Featured videos (in a real app, these would be fetched from an API)
+  const featuredVideos = [
+    {
+      id: 'dQw4w9WgXcQ',
+      title: 'Rick Astley - Never Gonna Give You Up',
+      thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg',
+    },
+    {
+      id: '9bZkp7q19f0',
+      title: 'PSY - GANGNAM STYLE(강남스타일)',
+      thumbnail: 'https://img.youtube.com/vi/9bZkp7q19f0/maxresdefault.jpg',
+    },
+    {
+      id: 'kJQP7kiw5Fk',
+      title: 'Luis Fonsi - Despacito ft. Daddy Yankee',
+      thumbnail: 'https://img.youtube.com/vi/kJQP7kiw5Fk/maxresdefault.jpg',
+    },
+    {
+      id: 'JGwWNGJdvx8',
+      title: 'Ed Sheeran - Shape of You',
+      thumbnail: 'https://img.youtube.com/vi/JGwWNGJdvx8/maxresdefault.jpg',
+    },
+  ];
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+  return (
+    <AppLayout>
+      <Container maxWidth="lg">
+        {/* Hero Section */}
+        <Box
+          sx={{
+            textAlign: 'center',
+            py: 8,
+            px: 2,
+            mb: 6,
+            borderRadius: 2,
+            bgcolor: 'rgba(255, 0, 0, 0.05)',
+          }}
+        >
+          <Typography variant="h3" component="h1" gutterBottom>
+            YouTube AI Summarizer
+          </Typography>
+          <Typography variant="h6" color="text.secondary" paragraph>
+            Get AI-powered insights from any YouTube video
+          </Typography>
+          
+          {/* Search Form */}
+          <Box
+            component="form"
+            sx={{
+              mt: 4,
+              display: 'flex',
+              flexDirection: { xs: 'column', sm: 'row' },
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 2,
+              width: '100%',
+              maxWidth: 600,
+              mx: 'auto',
+            }}
+            action="/search"
+            method="get"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+            <TextField
+              fullWidth
+              name="q"
+              placeholder="Enter YouTube URL or video ID"
+              variant="outlined"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+              }}
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+            <Button
+              type="submit"
+              variant="contained"
+              color="primary"
+              size="large"
+              sx={{ px: 4, py: 1.5, borderRadius: 2 }}
+            >
+              Analyze
+            </Button>
+          </Box>
+        </Box>
+
+        {/* Featured Videos */}
+        <Box sx={{ mb: 6 }}>
+          <Typography variant="h5" component="h2" gutterBottom>
+            Featured Videos
+          </Typography>
+          <Grid container spacing={3}>
+            {featuredVideos.map((video) => (
+              <Grid item key={video.id} xs={12} sm={6} md={3}>
+                <Card
+                  component={Link}
+                  href={`/video/${video.id}`}
+                  sx={{
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    textDecoration: 'none',
+                    transition: 'transform 0.2s',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                    },
+                  }}
+                >
+                  <CardMedia
+                    component="img"
+                    image={video.thumbnail}
+                    alt={video.title}
+                    sx={{ aspectRatio: '16/9' }}
+                  />
+                  <CardContent>
+                    <Typography variant="body1" component="h3">
+                      {video.title}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
+
+        {/* How It Works */}
+        <Box sx={{ mb: 6 }}>
+          <Typography variant="h5" component="h2" gutterBottom>
+            How It Works
+          </Typography>
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={4}>
+              <Box sx={{ textAlign: 'center', p: 2 }}>
+                <Typography variant="h6" gutterBottom>
+                  1. Enter a YouTube URL
+                </Typography>
+                <Typography>
+                  Paste any YouTube video URL or ID into the search box
+                </Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <Box sx={{ textAlign: 'center', p: 2 }}>
+                <Typography variant="h6" gutterBottom>
+                  2. Choose an AI Action
+                </Typography>
+                <Typography>
+                  Select from summarize, ask a question, or extract key points
+                </Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <Box sx={{ textAlign: 'center', p: 2 }}>
+                <Typography variant="h6" gutterBottom>
+                  3. Get AI Insights
+                </Typography>
+                <Typography>
+                  Receive AI-generated insights based on the video content
+                </Typography>
+              </Box>
+            </Grid>
+          </Grid>
+        </Box>
+      </Container>
+    </AppLayout>
   );
 }
