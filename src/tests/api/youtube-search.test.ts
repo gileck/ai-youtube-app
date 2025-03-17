@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { GET } from '../../../src/app/api/youtube/search/route';
 import { createMocks } from 'node-mocks-http';
+import axios from 'axios';
 
 // Mock the axios module
 jest.mock('axios', () => ({
@@ -127,7 +128,8 @@ describe('YouTube Search API', () => {
 
   it('should handle YouTube API errors gracefully', async () => {
     // Mock axios to throw an error
-    require('axios').get.mockImplementationOnce(() => {
+    const mockedAxios = axios as jest.Mocked<typeof axios>;
+    mockedAxios.get.mockImplementationOnce(() => {
       return Promise.reject(new Error('YouTube API Error'));
     });
 

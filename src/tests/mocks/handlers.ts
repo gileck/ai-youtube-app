@@ -81,20 +81,8 @@ const mockChannelDetails = {
   ]
 };
 
-const mockTranscript = [
-  { text: 'This is the first part of the transcript.', offset: 0, duration: 5 },
-  { text: 'This is the second part of the transcript.', offset: 5, duration: 5 },
-  { text: 'This is the third part of the transcript.', offset: 10, duration: 5 }
-];
-
-const mockChapters = [
-  { title: 'Introduction', startTime: 0, endTime: 5 },
-  { title: 'Main Content', startTime: 5, endTime: 10 },
-  { title: 'Conclusion', startTime: 10, endTime: 15 }
-];
-
 // Define handlers for API mocking
-const handlers = [
+export const handlers = [
   // Mock the YouTube API search endpoint
   http.get('https://www.googleapis.com/youtube/v3/search', () => {
     return HttpResponse.json(mockSearchResults);
@@ -211,5 +199,3 @@ const handlers = [
     }
   })
 ];
-
-export { handlers };

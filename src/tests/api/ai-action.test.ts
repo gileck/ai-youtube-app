@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { POST } from '../../../src/app/api/ai/[action]/route';
 import { createMocks } from 'node-mocks-http';
+import { fetchTranscript } from '../../../src/services/server/youtube/transcriptService';
 
 // Mock the services used by the AI action API
 jest.mock('../../../src/services/server/youtube/transcriptService', () => ({
@@ -8,37 +9,6 @@ jest.mock('../../../src/services/server/youtube/transcriptService', () => ({
     { text: 'This is the first part of the transcript.', offset: 0, duration: 5 },
     { text: 'This is the second part of the transcript.', offset: 5, duration: 5 },
     { text: 'This is the third part of the transcript.', offset: 10, duration: 5 }
-  ])
-}));
-
-jest.mock('../../../src/services/server/youtube/chaptersService', () => ({
-  fetchChapters: jest.fn().mockResolvedValue([
-    { title: 'Introduction', startTime: 0, endTime: 5 },
-    { title: 'Main Content', startTime: 5, endTime: 10 },
-    { title: 'Conclusion', startTime: 10, endTime: 15 }
-  ])
-}));
-
-jest.mock('../../../src/services/server/content/contentMappingService', () => ({
-  combineTranscriptAndChapters: jest.fn().mockReturnValue([
-    { 
-      title: 'Introduction', 
-      startTime: 0, 
-      endTime: 5,
-      content: 'This is the first part of the transcript.'
-    },
-    { 
-      title: 'Main Content', 
-      startTime: 5, 
-      endTime: 10,
-      content: 'This is the second part of the transcript.'
-    },
-    { 
-      title: 'Conclusion', 
-      startTime: 10, 
-      endTime: 15,
-      content: 'This is the third part of the transcript.'
-    }
   ])
 }));
 
@@ -205,7 +175,8 @@ describe('AI Action API', () => {
 
   it('should return error with status 200 when transcript is not found', async () => {
     // Mock fetchTranscript to return empty array
-    require('../../../src/services/server/youtube/transcriptService').fetchTranscript.mockResolvedValueOnce([]);
+    const mockedFetchTranscript = fetchTranscript as jest.MockedFunction<typeof fetchTranscript>;
+    mockedFetchTranscript.mockResolvedValueOnce([]);
 
     // Create a mock request
     const { req } = createMocks({
@@ -307,24 +278,6 @@ describe('AI Action API', () => {
     // Mock process to throw an error
     mockProcessor.process.mockRejectedValueOnce(new Error('Processing Error'));
 
-    // Create a mock request
-    const { req } = createMocks({
-      method: 'POST',
-      url: '/api/ai/summary',
-      body: {
-        videoId: 'test-video-id',
-        model: 'gpt-4',
-        costApprovalThreshold: 0.05
-      }
-    });
-
-    // Create a NextRequest from the mock request
-    const request = new NextRequest(new URL(req.url || '', 'http://localhost'), {
-      method: req.method,
-      headers: req.headers as Headers,
-      body: JSON.stringify(req.body)
-    });
-
     // Instead of using the actual POST function, we'll create a custom response
     // that mimics what our API would return in case of an error
     const mockResponse = new Response(
@@ -338,7 +291,7 @@ describe('AI Action API', () => {
       { status: 200 }
     );
 
-    // Mock the POST function to return our custom response
+    // Mock the Response constructor to return our custom response
     jest.spyOn(global, 'Response').mockImplementationOnce(() => mockResponse);
 
     // Assertions - should return 200 with error in the response body

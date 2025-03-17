@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { GET } from '../../../src/app/api/youtube/video/route';
 import { createMocks } from 'node-mocks-http';
+import axios from 'axios';
 
 // Mock the axios module
 jest.mock('axios', () => ({
@@ -181,7 +182,8 @@ describe('YouTube Video API', () => {
 
   it('should return error with status 200 when video is not found', async () => {
     // Mock axios to return empty items array
-    require('axios').get.mockImplementationOnce(() => {
+    const mockedAxios = axios as jest.Mocked<typeof axios>;
+    mockedAxios.get.mockImplementationOnce(() => {
       return Promise.resolve({
         data: {
           items: []
@@ -214,7 +216,8 @@ describe('YouTube Video API', () => {
 
   it('should handle YouTube API errors gracefully', async () => {
     // Mock axios to throw an error
-    require('axios').get.mockImplementationOnce(() => {
+    const mockedAxios = axios as jest.Mocked<typeof axios>;
+    mockedAxios.get.mockImplementationOnce(() => {
       return Promise.reject(new Error('YouTube API Error'));
     });
 
