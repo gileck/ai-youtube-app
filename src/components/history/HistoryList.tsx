@@ -21,6 +21,7 @@ export default function HistoryList() {
     try {
       return formatDistanceToNow(new Date(timestamp), { addSuffix: true });
     } catch (error) {
+      console.error("Error formatting timestamp:", error);
       return 'Unknown time';
     }
   };

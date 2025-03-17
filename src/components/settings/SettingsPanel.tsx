@@ -83,7 +83,7 @@ export default function SettingsPanel() {
                     <Box>
                       <Typography variant="body1">Gemini Pro</Typography>
                       <Typography variant="caption" color="text.secondary">
-                        Google's advanced AI model with strong reasoning capabilities
+                        Google&apos;s advanced AI model with strong reasoning capabilities
                       </Typography>
                     </Box>
                   } 
@@ -105,7 +105,7 @@ export default function SettingsPanel() {
                 Cost Approval Threshold: ${settings.costApprovalThreshold.toFixed(2)}
               </Typography>
               <Typography variant="caption" color="text.secondary" paragraph>
-                You'll be asked for approval before processing requests that exceed this cost
+                You&apos;ll be asked for approval before processing requests that exceed this cost
               </Typography>
               <Slider
                 value={settings.costApprovalThreshold}

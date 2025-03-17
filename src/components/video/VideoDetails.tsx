@@ -34,6 +34,7 @@ export default function VideoDetails({ video }: VideoDetailsProps) {
       const date = new Date(dateString);
       return `${formatDistanceToNow(date)} ago`;
     } catch (error) {
+      console.error("Error formatting publish date:", error);
       return 'Unknown date';
     }
   };
