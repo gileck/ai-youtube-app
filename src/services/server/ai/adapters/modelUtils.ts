@@ -1,6 +1,7 @@
 import { OpenAIAdapter } from './openai';
 import { GeminiAdapter } from './gemini';
 import { AIModelAdapter } from './types';
+import { AIModelDefinition, getAllModels } from '../../../../types/shared/models';
 
 // Map of model prefixes to their providers
 const MODEL_PROVIDERS: Record<string, string> = {
@@ -43,27 +44,9 @@ export const getAdapterForModel = (modelName: string): AIModelAdapter => {
 
 /**
  * Get all available models across all configured providers
+ * This function uses the shared model definitions
  */
-export const getAllAvailableModels = () => {
-  const models = [];
-  
-  // Check if OpenAI is configured
-  try {
-    const openaiAdapter = new OpenAIAdapter();
-    models.push(...openaiAdapter.getAvailableModels());
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.warn('OpenAI adapter not configured:', errorMessage);
-  }
-  
-  // Check if Gemini is configured
-  try {
-    const geminiAdapter = new GeminiAdapter();
-    models.push(...geminiAdapter.getAvailableModels());
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.warn('Gemini adapter not configured:', errorMessage);
-  }
-  
-  return models;
+export const getAllAvailableModels = (): AIModelDefinition[] => {
+  // Return all models from the shared definitions
+  return getAllModels();
 };

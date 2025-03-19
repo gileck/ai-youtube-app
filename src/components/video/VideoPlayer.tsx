@@ -3,9 +3,10 @@ import { Box, Paper } from '@mui/material';
 
 interface VideoPlayerProps {
   videoId: string;
+  title?: string;
 }
 
-export default function VideoPlayer({ videoId }: VideoPlayerProps) {
+export default function VideoPlayer({ videoId, title }: VideoPlayerProps) {
   // Pure function to create YouTube embed URL
   const getEmbedUrl = (id: string): string => {
     return `https://www.youtube.com/embed/${id}`;
@@ -26,7 +27,7 @@ export default function VideoPlayer({ videoId }: VideoPlayerProps) {
       <Box
         component="iframe"
         src={getEmbedUrl(videoId)}
-        title="YouTube video player"
+        title={title || "YouTube video player"}
         frameBorder="0"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
         allowFullScreen

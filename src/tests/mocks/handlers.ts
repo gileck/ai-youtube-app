@@ -140,7 +140,7 @@ export const handlers = [
 
   // Mock our internal AI action API
   http.post('http://localhost:3000/api/ai/:action', async ({ params }) => {
-    const action = params.action;
+    const action = (await params).action;
     
     // Different responses based on action type
     switch (action) {

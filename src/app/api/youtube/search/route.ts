@@ -53,21 +53,27 @@ export async function GET(request: NextRequest) {
         channelId: string;
         channelTitle: string;
         thumbnails: {
-          high: {
+          high?: {
+            url: string;
+          };
+          default?: {
             url: string;
           };
         };
       };
-    }) => ({
-      id: item.id.videoId || item.id.channelId || item.id.playlistId,
-      title: item.snippet.title,
-      description: item.snippet.description,
-      publishedAt: item.snippet.publishedAt,
-      channelId: item.snippet.channelId,
-      channelTitle: item.snippet.channelTitle,
-      thumbnail: item.snippet.thumbnails.high.url,
-      type: item.id.kind
-    }));
+    }) => {
+      const resultType = item.id.kind?.split('#')[1] || '';
+      return {
+        id: item.id.videoId || item.id.channelId || item.id.playlistId,
+        title: item.snippet.title,
+        description: item.snippet.description,
+        publishedAt: item.snippet.publishedAt,
+        channelId: item.snippet.channelId,
+        channelTitle: item.snippet.channelTitle,
+        thumbnail: item.snippet.thumbnails.high?.url || item.snippet.thumbnails.default?.url,
+        type: resultType
+      };
+    });
     
     return NextResponse.json({
       success: true,

@@ -1,13 +1,13 @@
 import React from 'react';
 import { Box, Typography, Avatar, Chip, Divider } from '@mui/material';
 import { formatDistanceToNow } from 'date-fns';
-import { YouTubeVideoDetails } from '../../services/server/youtube/videoService';
+import { YouTubeVideoDetails } from '../../types/shared/youtube';
 
 interface VideoDetailsProps {
-  video: YouTubeVideoDetails;
+  videoData: YouTubeVideoDetails;
 }
 
-export default function VideoDetails({ video }: VideoDetailsProps) {
+export default function VideoDetails({ videoData }: VideoDetailsProps) {
   // Pure function to format view count
   const formatViewCount = (count: number): string => {
     if (count >= 1000000) {
@@ -50,57 +50,60 @@ export default function VideoDetails({ video }: VideoDetailsProps) {
     
     if (hours > 0) {
       return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    } else {
-      return `${minutes}:${seconds.toString().padStart(2, '0')}`;
     }
+    
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
   return (
     <Box sx={{ mt: 2 }}>
+      {/* Video Title */}
       <Typography variant="h5" component="h1" gutterBottom>
-        {video.title}
+        {videoData.title}
       </Typography>
       
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-        <Chip 
-          label={formatViewCount(video.viewCount)} 
-          variant="outlined" 
-          size="small" 
-          sx={{ mr: 1 }}
-        />
-        <Chip 
-          label={`${formatLikeCount(video.likeCount)} likes`} 
-          variant="outlined" 
-          size="small" 
-          sx={{ mr: 1 }}
-        />
-        <Chip 
-          label={formatDuration(video.duration)} 
-          variant="outlined" 
-          size="small" 
-          sx={{ mr: 1 }}
-        />
-        <Typography variant="body2" color="text.secondary">
-          {formatPublishDate(video.publishedAt)}
-        </Typography>
+      {/* Channel and Stats */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Avatar 
+            src={videoData.channelThumbnail || undefined} 
+            alt={videoData.channelTitle}
+            sx={{ mr: 1.5, width: 40, height: 40 }}
+          />
+          <Box>
+            <Typography variant="subtitle1" component="div">
+              {videoData.channelTitle}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {formatPublishDate(videoData.publishedAt)}
+            </Typography>
+          </Box>
+        </Box>
+        
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <Chip 
+            label={formatViewCount(videoData.viewCount)} 
+            variant="outlined" 
+            size="small"
+          />
+          <Chip 
+            label={`${formatLikeCount(videoData.likeCount)} likes`} 
+            variant="outlined" 
+            size="small"
+          />
+          <Chip 
+            label={formatDuration(videoData.duration)} 
+            variant="outlined" 
+            size="small"
+          />
+        </Box>
       </Box>
       
       <Divider sx={{ my: 2 }} />
       
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-        <Avatar 
-          src={video.channelThumbnail || undefined} 
-          alt={video.channelTitle}
-          sx={{ mr: 2 }}
-        />
-        <Typography variant="subtitle1">
-          {video.channelTitle}
-        </Typography>
-      </Box>
-      
-      <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>
-        {video.description.split('\n').slice(0, 3).join('\n')}
-        {video.description.split('\n').length > 3 && '...'}
+      {/* Description */}
+      <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+        {videoData.description}
       </Typography>
     </Box>
   );

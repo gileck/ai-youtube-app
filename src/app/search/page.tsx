@@ -1,80 +1,192 @@
-import React from 'react';
-import { Box, Container, Typography, Grid, Card, CardMedia, CardContent, TextField, Button, InputAdornment } from '@mui/material';
-import SearchIcon from '@mui/icons-material/Search';
-import Link from 'next/link';
-import AppLayout from '../../components/layout/AppLayout';
-import { fetchSearchResults, YouTubeSearchResult } from '../../services/server/youtube/searchService';
+'use client';
 
-// This is a server component that handles search
-export default async function SearchPage(props: { 
-  searchParams: { q?: string } 
-}) {
-  // In Next.js 15, searchParams is asynchronous and must be awaited
-  const { searchParams } = props;
-  const query = (await searchParams)?.q || '';
+import React from 'react';
+import { Box, Container, Typography, Grid, Card, CardMedia, CardContent, TextField, Button, InputAdornment, ToggleButtonGroup, ToggleButton, Avatar, Divider } from '@mui/material';
+import SearchIcon from '@mui/icons-material/Search';
+import VideoLibraryIcon from '@mui/icons-material/VideoLibrary';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder';
+import BookmarkIcon from '@mui/icons-material/Bookmark';
+import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
+import AppLayout from '../../components/layout/AppLayout';
+import { useHistory } from '../../contexts/HistoryContext';
+import { formatDate } from '../../utils/formatters';
+
+// This is a client component that handles search
+export default function SearchPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const query = searchParams?.get('q') || '';
+  const type = searchParams?.get('type') || 'video';
   
-  // Fetch search results from the YouTube API
-  let searchResults: YouTubeSearchResult[] = [];
-  let error = null;
+  const [searchQuery, setSearchQuery] = React.useState(query);
+  const [searchType, setSearchType] = React.useState(type === 'channel' ? 'channel' : 'video');
+  const [searchResults, setSearchResults] = React.useState<any[]>([]);
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
   
-  if (query) {
-    try {
-      const response = await fetchSearchResults(query);
-      if (response.success) {
-        searchResults = response.data || [];
-      } else {
-        error = response.error?.message || 'Failed to fetch search results';
+  const { recentVideos, recentChannels, addToBookmarks, removeFromBookmarks, isBookmarked } = useHistory();
+
+  // Fetch search results when query or type changes
+  React.useEffect(() => {
+    const fetchResults = async () => {
+      if (!query) {
+        setSearchResults([]);
+        return;
       }
-    } catch (err) {
-      error = err instanceof Error ? err.message : 'An unknown error occurred';
+      
+      setIsLoading(true);
+      setError(null);
+      
+      try {
+        const endpoint = type === 'channel' 
+          ? `/api/youtube/channels?q=${encodeURIComponent(query)}&sortBy=popularity`
+          : `/api/youtube/search?q=${encodeURIComponent(query)}&type=video`;
+          
+        const response = await fetch(endpoint);
+        const data = await response.json();
+        
+        if (data.success) {
+          setSearchResults(data.data || []);
+        } else {
+          setError(data.error?.message || 'Failed to fetch search results');
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchResults();
+  }, [query, type]);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}&type=${searchType}`);
     }
-  }
+  };
+  
+  const handleTypeChange = (_event: React.MouseEvent<HTMLElement>, newType: string | null) => {
+    if (newType) {
+      setSearchType(newType as 'video' | 'channel');
+    }
+  };
+  
+  const handleBookmarkToggle = (item: any) => {
+    const bookmarkItem = {
+      id: item.id,
+      title: item.title,
+      thumbnail: item.thumbnail,
+      type: item.type || 'video',
+      channelId: item.channelId,
+      channelTitle: item.channelTitle,
+    };
+    
+    if (isBookmarked(item.id)) {
+      removeFromBookmarks(item.id);
+    } else {
+      addToBookmarks(bookmarkItem);
+    }
+  };
 
   return (
     <AppLayout>
       <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
+        <Box sx={{ py: 4, borderRadius: 2, boxShadow: '0 2px 10px rgba(0,0,0,0.05)', my: 2 }}>
           <Typography variant="h4" component="h1" gutterBottom>
-            Search Results
+            {query ? 'Search Results' : 'Search'}
           </Typography>
           
           {/* Search Form */}
           <Box
             component="form"
+            onSubmit={handleSearch}
             sx={{
               mb: 4,
               display: 'flex',
-              flexDirection: { xs: 'column', sm: 'row' },
-              alignItems: 'center',
+              flexDirection: 'column',
               gap: 2,
               width: '100%',
+              p: 3,
+              borderRadius: 2,
+              border: '1px solid #eaeaea',
             }}
-            action="/search"
-            method="get"
           >
-            <TextField
-              fullWidth
-              name="q"
-              defaultValue={query}
-              placeholder="Enter YouTube URL or search query"
-              variant="outlined"
-              size="small"
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-              }}
-            />
-            <Button
-              type="submit"
-              variant="contained"
-              color="primary"
-              sx={{ px: 3, whiteSpace: 'nowrap' }}
-            >
-              Search
-            </Button>
+            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
+              <TextField
+                fullWidth
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Enter YouTube URL or search query"
+                variant="outlined"
+                size="small"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2,
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'primary.main',
+                    },
+                  },
+                  '& .MuiInputBase-input': {
+                    color: 'text.primary',
+                  },
+                  '& .MuiInputAdornment-root': {
+                    color: 'text.primary',
+                  },
+                }}
+              />
+              <Button
+                type="submit"
+                variant="contained"
+                color="primary"
+                sx={{ px: 3, whiteSpace: 'nowrap', height: { sm: 40 } }}
+              >
+                Search
+              </Button>
+            </Box>
+            
+            {/* Search Type Toggle */}
+            <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+              <ToggleButtonGroup
+                value={searchType}
+                exclusive
+                onChange={handleTypeChange}
+                aria-label="search type"
+                size="small"
+                sx={{
+                  '& .MuiToggleButton-root': {
+                    px: 3,
+                    py: 0.5,
+                    borderRadius: '4px !important',
+                    textTransform: 'none',
+                    fontWeight: 500,
+                  },
+                  '& .Mui-selected': {
+                    backgroundColor: 'primary.main !important',
+                    color: 'white !important',
+                  }
+                }}
+              >
+                <ToggleButton value="video" aria-label="videos">
+                  <VideoLibraryIcon sx={{ mr: 1 }} />
+                  Videos
+                </ToggleButton>
+                <ToggleButton value="channel" aria-label="channels">
+                  <AccountCircleIcon sx={{ mr: 1 }} />
+                  Channels
+                </ToggleButton>
+              </ToggleButtonGroup>
+            </Box>
           </Box>
           
           {/* Error Message */}
@@ -84,77 +196,184 @@ export default async function SearchPage(props: {
             </Box>
           )}
           
-          {/* Search Results */}
+          {/* Search Results or Recently Viewed */}
           {query ? (
-            searchResults.length > 0 ? (
+            // Search Results
+            isLoading ? (
+              <Box sx={{ textAlign: 'center', py: 6 }}>
+                <Typography>Loading results...</Typography>
+              </Box>
+            ) : searchResults.length > 0 ? (
               <Grid container spacing={3}>
-                {searchResults.map((video: YouTubeSearchResult) => (
-                  <Grid item xs={12} key={video.id}>
-                    <Card 
-                      sx={{ 
-                        display: 'flex', 
-                        flexDirection: { xs: 'column', sm: 'row' },
-                        height: '100%'
-                      }}
-                    >
-                      <CardMedia
-                        component={Link}
-                        href={`/video/${video.id}`}
-                        sx={{
-                          width: { xs: '100%', sm: 320 },
-                          height: { xs: 180, sm: 180 },
-                          flexShrink: 0,
-                          position: 'relative',
-                          '&:hover': {
-                            opacity: 0.9,
-                          },
+                {searchResults.map((result: any) => (
+                  <Grid item xs={12} key={result.id}>
+                    {result.type === 'channel' || type === 'channel' ? (
+                      // Channel Card
+                      <Card 
+                        sx={{ 
+                          display: 'flex', 
+                          flexDirection: { xs: 'column', sm: 'row' },
+                          height: '100%'
                         }}
                       >
                         <Box
-                          component="img"
-                          src={video.thumbnail}
-                          alt={video.title}
                           sx={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'cover',
+                            width: { xs: '100%', sm: 200 },
+                            height: { xs: 200, sm: 200 },
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            bgcolor: 'grey.100',
                           }}
-                        />
-                      </CardMedia>
-                      <CardContent sx={{ flex: '1 0 auto', display: 'flex', flexDirection: 'column' }}>
-                        <Typography 
-                          variant="h6" 
+                        >
+                          <Avatar
+                            component={Link}
+                            href={`/channel/${result.id}`}
+                            src={result.thumbnail}
+                            alt={result.title}
+                            sx={{
+                              width: 120,
+                              height: 120,
+                              '&:hover': {
+                                opacity: 0.9,
+                              },
+                            }}
+                          />
+                        </Box>
+                        <CardContent sx={{ flex: '1 0 auto', display: 'flex', flexDirection: 'column' }}>
+                          <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                            <Typography 
+                              variant="h6" 
+                              component={Link}
+                              href={`/channel/${result.id}`}
+                              sx={{ 
+                                textDecoration: 'none',
+                                color: 'inherit',
+                                '&:hover': {
+                                  color: 'primary.main',
+                                },
+                              }}
+                            >
+                              {result.title}
+                            </Typography>
+                            <Button
+                              onClick={() => handleBookmarkToggle(result)}
+                              color={isBookmarked(result.id) ? 'primary' : 'inherit'}
+                              sx={{ minWidth: 'auto', p: 1 }}
+                            >
+                              {isBookmarked(result.id) ? <BookmarkIcon /> : <BookmarkBorderIcon />}
+                            </Button>
+                          </Box>
+                          <Typography variant="caption" color="text.secondary" sx={{ mb: 1 }}>
+                            Channel • {formatDate(result.publishedAt)}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                            {result.description?.length > 200 
+                              ? `${result.description.substring(0, 200)}...` 
+                              : result.description}
+                          </Typography>
+                          <Box sx={{ mt: 'auto' }}>
+                            <Button 
+                              variant="contained" 
+                              color="primary"
+                              component={Link}
+                              href={`/channel/${result.id}`}
+                              size="small"
+                            >
+                              View Channel
+                            </Button>
+                          </Box>
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      // Video Card
+                      <Card 
+                        sx={{ 
+                          display: 'flex', 
+                          flexDirection: { xs: 'column', sm: 'row' },
+                          height: '100%'
+                        }}
+                      >
+                        <CardMedia
                           component={Link}
-                          href={`/video/${video.id}`}
-                          sx={{ 
-                            textDecoration: 'none',
-                            color: 'inherit',
+                          href={`/video/${result.id}`}
+                          sx={{
+                            width: { xs: '100%', sm: 320 },
+                            height: { xs: 180, sm: 180 },
+                            flexShrink: 0,
+                            position: 'relative',
                             '&:hover': {
-                              color: 'primary.main',
+                              opacity: 0.9,
                             },
                           }}
                         >
-                          {video.title}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                          {video.channelTitle}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {new Date(video.publishedAt).toLocaleDateString()}
-                        </Typography>
-                        <Box sx={{ mt: 'auto', pt: 2 }}>
-                          <Button 
-                            variant="contained" 
-                            color="primary"
+                          <Box
+                            component="img"
+                            src={result.thumbnail}
+                            alt={result.title}
+                            sx={{
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'cover',
+                            }}
+                          />
+                        </CardMedia>
+                        <CardContent sx={{ flex: '1 0 auto', display: 'flex', flexDirection: 'column' }}>
+                          <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                            <Typography 
+                              variant="h6" 
+                              component={Link}
+                              href={`/video/${result.id}`}
+                              sx={{ 
+                                textDecoration: 'none',
+                                color: 'inherit',
+                                '&:hover': {
+                                  color: 'primary.main',
+                                },
+                              }}
+                            >
+                              {result.title}
+                            </Typography>
+                            <Button
+                              onClick={() => handleBookmarkToggle(result)}
+                              color={isBookmarked(result.id) ? 'primary' : 'inherit'}
+                              sx={{ minWidth: 'auto', p: 1 }}
+                            >
+                              {isBookmarked(result.id) ? <BookmarkIcon /> : <BookmarkBorderIcon />}
+                            </Button>
+                          </Box>
+                          <Typography 
+                            variant="body2" 
+                            color="text.secondary" 
                             component={Link}
-                            href={`/video/${video.id}`}
-                            size="small"
+                            href={`/channel/${result.channelId}`}
+                            sx={{ 
+                              mt: 1,
+                              textDecoration: 'none',
+                              '&:hover': {
+                                color: 'primary.main',
+                              },
+                            }}
                           >
-                            Analyze with AI
-                          </Button>
-                        </Box>
-                      </CardContent>
-                    </Card>
+                            {result.channelTitle}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {formatDate(result.publishedAt)}
+                          </Typography>
+                          <Box sx={{ mt: 'auto', pt: 2 }}>
+                            <Button 
+                              variant="contained" 
+                              color="primary"
+                              component={Link}
+                              href={`/video/${result.id}`}
+                              size="small"
+                            >
+                              Analyze with AI
+                            </Button>
+                          </Box>
+                        </CardContent>
+                      </Card>
+                    )}
                   </Grid>
                 ))}
               </Grid>
@@ -166,10 +385,194 @@ export default async function SearchPage(props: {
               </Box>
             )
           ) : (
-            <Box sx={{ textAlign: 'center', py: 6 }}>
-              <Typography variant="h6" color="text.secondary">
-                Enter a search term or YouTube URL to get started
-              </Typography>
+            // Recently Viewed Content
+            <Box>
+              {/* Recently Viewed Videos */}
+              {recentVideos.length > 0 && (
+                <Box sx={{ mb: 6 }}>
+                  <Typography variant="h5" component="h2" gutterBottom>
+                    Recently Viewed Videos
+                  </Typography>
+                  <Grid container spacing={3}>
+                    {recentVideos.slice(0, 4).map((video) => (
+                      <Grid item xs={12} sm={6} md={3} key={video.id}>
+                        <Card
+                          sx={{
+                            height: '100%',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            transition: 'transform 0.2s',
+                            '&:hover': {
+                              transform: 'translateY(-4px)',
+                            },
+                          }}
+                        >
+                          <CardMedia
+                            component={Link}
+                            href={`/video/${video.id}`}
+                            sx={{
+                              position: 'relative',
+                              paddingTop: '56.25%', // 16:9 aspect ratio
+                            }}
+                          >
+                            <Box
+                              component="img"
+                              src={video.thumbnail}
+                              alt={video.title}
+                              sx={{
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                              }}
+                            />
+                          </CardMedia>
+                          <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+                            <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                              <Typography 
+                                variant="body1" 
+                                component={Link} 
+                                href={`/video/${video.id}`}
+                                sx={{ 
+                                  fontWeight: 'medium',
+                                  textDecoration: 'none',
+                                  color: 'inherit',
+                                  '&:hover': {
+                                    color: 'primary.main',
+                                  },
+                                }}
+                              >
+                                {video.title.length > 60 ? `${video.title.substring(0, 60)}...` : video.title}
+                              </Typography>
+                              <Button
+                                onClick={() => handleBookmarkToggle(video)}
+                                color={isBookmarked(video.id) ? 'primary' : 'inherit'}
+                                sx={{ minWidth: 'auto', p: 0.5 }}
+                              >
+                                {isBookmarked(video.id) ? <BookmarkIcon fontSize="small" /> : <BookmarkBorderIcon fontSize="small" />}
+                              </Button>
+                            </Box>
+                            
+                            {video.channelTitle && (
+                              <Typography 
+                                variant="body2" 
+                                color="text.secondary"
+                                component={Link}
+                                href={`/channel/${video.channelId}`}
+                                sx={{ 
+                                  mt: 1,
+                                  textDecoration: 'none',
+                                  '&:hover': {
+                                    color: 'primary.main',
+                                  },
+                                }}
+                              >
+                                {video.channelTitle}
+                              </Typography>
+                            )}
+                            
+                            <Typography variant="caption" color="text.secondary" sx={{ mt: 'auto', pt: 1 }}>
+                              Viewed {formatDate(video.viewedAt)}
+                            </Typography>
+                          </CardContent>
+                        </Card>
+                      </Grid>
+                    ))}
+                  </Grid>
+                </Box>
+              )}
+              
+              {/* Recently Viewed Channels */}
+              {recentChannels.length > 0 && (
+                <Box sx={{ mb: 6 }}>
+                  <Typography variant="h5" component="h2" gutterBottom>
+                    Recently Viewed Channels
+                  </Typography>
+                  <Grid container spacing={3}>
+                    {recentChannels.slice(0, 4).map((channel) => (
+                      <Grid item xs={12} sm={6} md={3} key={channel.id}>
+                        <Card
+                          sx={{
+                            height: '100%',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            transition: 'transform 0.2s',
+                            '&:hover': {
+                              transform: 'translateY(-4px)',
+                            },
+                          }}
+                        >
+                          <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                            <Avatar
+                              component={Link}
+                              href={`/channel/${channel.id}`}
+                              src={channel.thumbnail}
+                              alt={channel.title}
+                              sx={{
+                                width: 80,
+                                height: 80,
+                                mb: 2,
+                                border: '2px solid #f0f0f0',
+                              }}
+                            />
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+                              <Typography 
+                                variant="h6" 
+                                component={Link}
+                                href={`/channel/${channel.id}`}
+                                sx={{ 
+                                  textAlign: 'center',
+                                  textDecoration: 'none',
+                                  color: 'inherit',
+                                  '&:hover': {
+                                    color: 'primary.main',
+                                  },
+                                }}
+                              >
+                                {channel.title}
+                              </Typography>
+                              <Button
+                                onClick={() => handleBookmarkToggle(channel)}
+                                color={isBookmarked(channel.id) ? 'primary' : 'inherit'}
+                                sx={{ minWidth: 'auto', ml: 1 }}
+                              >
+                                {isBookmarked(channel.id) ? <BookmarkIcon fontSize="small" /> : <BookmarkBorderIcon fontSize="small" />}
+                              </Button>
+                            </Box>
+                            
+                            <Typography variant="caption" color="text.secondary" sx={{ mt: 2 }}>
+                              Viewed {formatDate(channel.viewedAt)}
+                            </Typography>
+                            
+                            <Button 
+                              variant="outlined" 
+                              component={Link}
+                              href={`/channel/${channel.id}`}
+                              size="small"
+                              sx={{ mt: 2 }}
+                            >
+                              View Channel
+                            </Button>
+                          </Box>
+                        </Card>
+                      </Grid>
+                    ))}
+                  </Grid>
+                </Box>
+              )}
+              
+              {recentVideos.length === 0 && recentChannels.length === 0 && (
+                <Box sx={{ textAlign: 'center', py: 6 }}>
+                  <Typography variant="h6" color="text.primary">
+                    Enter a search term or YouTube URL to get started
+                  </Typography>
+                  <Typography variant="body1" color="text.primary" sx={{ mt: 2 }}>
+                    Your recently viewed videos and channels will appear here
+                  </Typography>
+                </Box>
+              )}
             </Box>
           )}
         </Box>

@@ -2,11 +2,13 @@
  * AI model adapter interface
  * Defines the contract for all AI model adapters
  */
+import { AIModelDefinition } from '../../../../types/shared/models';
+
 export interface AIModelAdapter {
   name: string;
   
   // Get available models for this adapter
-  getAvailableModels: () => AIModel[];
+  getAvailableModels: () => AIModelDefinition[];
   
   // Estimate cost based on input text and expected output length
   estimateCost: (
@@ -21,19 +23,6 @@ export interface AIModelAdapter {
     model: string, 
     options?: AIModelOptions
   ) => Promise<AIModelResponse>;
-}
-
-/**
- * AI model information
- */
-export interface AIModel {
-  id: string;
-  name: string;
-  provider: string;
-  inputCostPer1KTokens: number;
-  outputCostPer1KTokens: number;
-  maxTokens: number;
-  capabilities: string[];
 }
 
 /**

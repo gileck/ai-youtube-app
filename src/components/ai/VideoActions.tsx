@@ -149,6 +149,10 @@ export default function VideoActions({ videoId, videoTitle }: VideoActionsProps)
     setResult(null);
     
     try {
+      if (!apiClient) {
+        throw new Error('API client is not initialized');
+      }
+      
       // Create typed action parameters
       const actionParams = createActionParams(action, params);
       setActionParams(actionParams);
@@ -200,6 +204,10 @@ export default function VideoActions({ videoId, videoTitle }: VideoActionsProps)
     try {
       if (!activeAction || !actionParams) {
         throw new Error('Missing action parameters');
+      }
+      
+      if (!apiClient) {
+        throw new Error('API client is not initialized');
       }
       
       const response = await apiClient.processVideo({

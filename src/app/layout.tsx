@@ -1,6 +1,12 @@
-import type { Metadata } from "next";
+'use client';
+
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { HistoryProvider } from "../contexts/HistoryContext";
+import { MonitoringProvider } from "../contexts/MonitoringContext";
+import { SettingsProvider } from "../contexts/SettingsContext";
+import { ApiProvider } from "../contexts/ApiContext";
+import { ThemeProvider, createTheme } from "@mui/material";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -12,10 +18,120 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "YouTube AI Summarizer",
-  description: "Get AI-powered insights from any YouTube video",
-};
+// Create a theme instance with more modern colors and styles
+const theme = createTheme({
+  palette: {
+    primary: {
+      main: '#FF3737', // Deepened YouTube red
+      light: '#ff6666',
+      dark: '#c50000',
+      contrastText: '#ffffff',
+    },
+    secondary: {
+      main: '#333333', // Darkened gray
+      light: '#555555',
+      dark: '#000000',
+      contrastText: '#ffffff',
+    },
+    background: {
+      default: '#ffffff', // White background
+      paper: '#ffffff',
+    },
+    error: {
+      main: '#f44336',
+    },
+    warning: {
+      main: '#ff9800',
+    },
+    info: {
+      main: '#2196f3',
+    },
+    success: {
+      main: '#4caf50',
+    },
+    text: {
+      primary: '#000000', // Black text for maximum contrast
+      secondary: '#333333', // Dark gray for secondary text
+    },
+  },
+  typography: {
+    fontFamily: [
+      'Roboto',
+      'Arial',
+      'sans-serif',
+    ].join(','),
+    h1: {
+      fontWeight: 500,
+    },
+    h2: {
+      fontWeight: 500,
+    },
+    h3: {
+      fontWeight: 500,
+    },
+    h4: {
+      fontWeight: 500,
+    },
+    h5: {
+      fontWeight: 500,
+    },
+    h6: {
+      fontWeight: 500,
+    },
+  },
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: 8,
+          textTransform: 'none',
+          fontWeight: 500,
+          boxShadow: 'none',
+          '&:hover': {
+            boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
+          },
+        },
+        contained: {
+          '&:hover': {
+            boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.1)',
+          },
+        },
+      },
+    },
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          borderRadius: 12,
+          boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.08)',
+          overflow: 'hidden',
+        },
+      },
+    },
+    MuiTextField: {
+      styleOverrides: {
+        root: {
+          '& .MuiOutlinedInput-root': {
+            borderRadius: 8,
+          },
+        },
+      },
+    },
+    MuiAppBar: {
+      styleOverrides: {
+        root: {
+          boxShadow: '0px 1px 4px rgba(0, 0, 0, 0.1)',
+        },
+      },
+    },
+    MuiChip: {
+      styleOverrides: {
+        root: {
+          borderRadius: 16,
+        },
+      },
+    },
+  },
+});
 
 export default function RootLayout({
   children,
@@ -27,7 +143,17 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <ThemeProvider theme={theme}>
+          <SettingsProvider>
+            <ApiProvider>
+              <HistoryProvider>
+                <MonitoringProvider>
+                  {children}
+                </MonitoringProvider>
+              </HistoryProvider>
+            </ApiProvider>
+          </SettingsProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

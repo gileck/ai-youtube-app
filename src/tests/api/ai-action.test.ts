@@ -74,7 +74,7 @@ describe('AI Action API', () => {
     });
 
     // Call the API route handler
-    const response = await POST(request, { params: { action: 'summary' } });
+    const response = await POST(request, { params: Promise.resolve({ action: 'summary' }) });
     const data = await response.json();
 
     // Assertions
@@ -104,7 +104,7 @@ describe('AI Action API', () => {
     });
 
     // Call the API route handler
-    const response = await POST(request, { params: { action: 'summary' } });
+    const response = await POST(request, { params: Promise.resolve({ action: 'summary' }) });
     const data = await response.json();
 
     // Assertions - should return 200 with error in the response body
@@ -133,7 +133,7 @@ describe('AI Action API', () => {
     });
 
     // Call the API route handler
-    const response = await POST(request, { params: { action: 'summary' } });
+    const response = await POST(request, { params: Promise.resolve({ action: 'summary' }) });
     const data = await response.json();
 
     // Assertions - should return 200 with error in the response body
@@ -163,7 +163,7 @@ describe('AI Action API', () => {
     });
 
     // Call the API route handler
-    const response = await POST(request, { params: { action: 'invalid-action' } });
+    const response = await POST(request, { params: Promise.resolve({ action: 'invalid-action' }) });
     const data = await response.json();
 
     // Assertions - should return 200 with error in the response body
@@ -197,7 +197,7 @@ describe('AI Action API', () => {
     });
 
     // Call the API route handler
-    const response = await POST(request, { params: { action: 'summary' } });
+    const response = await POST(request, { params: Promise.resolve({ action: 'summary' }) });
     const data = await response.json();
 
     // Assertions - should return 200 with error in the response body
@@ -230,7 +230,7 @@ describe('AI Action API', () => {
     });
 
     // Call the API route handler
-    const response = await POST(request, { params: { action: 'summary' } });
+    const response = await POST(request, { params: Promise.resolve({ action: 'summary' }) });
     const data = await response.json();
 
     // Assertions
@@ -264,7 +264,7 @@ describe('AI Action API', () => {
     });
 
     // Call the API route handler
-    const response = await POST(request, { params: { action: 'summary' } });
+    const response = await POST(request, { params: Promise.resolve({ action: 'summary' }) });
     const data = await response.json();
 
     // Assertions

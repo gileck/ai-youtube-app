@@ -1,36 +1,6 @@
 import OpenAI from 'openai';
-import { AIModelAdapter, AIModel, AIModelCostEstimate, AIModelOptions, AIModelResponse } from './types';
-
-// OpenAI models with pricing information
-const OPENAI_MODELS: AIModel[] = [
-  {
-    id: 'gpt-3.5-turbo',
-    name: 'GPT-3.5 Turbo',
-    provider: 'openai',
-    inputCostPer1KTokens: 0.0015,
-    outputCostPer1KTokens: 0.002,
-    maxTokens: 4096,
-    capabilities: ['summarization', 'question-answering', 'content-generation']
-  },
-  {
-    id: 'gpt-4',
-    name: 'GPT-4',
-    provider: 'openai',
-    inputCostPer1KTokens: 0.03,
-    outputCostPer1KTokens: 0.06,
-    maxTokens: 8192,
-    capabilities: ['summarization', 'question-answering', 'content-generation', 'reasoning']
-  },
-  {
-    id: 'gpt-4-turbo',
-    name: 'GPT-4 Turbo',
-    provider: 'openai',
-    inputCostPer1KTokens: 0.01,
-    outputCostPer1KTokens: 0.03,
-    maxTokens: 128000,
-    capabilities: ['summarization', 'question-answering', 'content-generation', 'reasoning']
-  }
-];
+import { AIModelAdapter, AIModelCostEstimate, AIModelOptions, AIModelResponse } from './types';
+import { OPENAI_MODELS, AIModelDefinition } from '../../../../types/shared/models';
 
 export class OpenAIAdapter implements AIModelAdapter {
   private openai: OpenAI;
@@ -47,18 +17,24 @@ export class OpenAIAdapter implements AIModelAdapter {
     this.openai = new OpenAI({ apiKey });
   }
   
-  getAvailableModels(): AIModel[] {
+  getAvailableModels(): AIModelDefinition[] {
     return OPENAI_MODELS;
   }
   
-  // Pure function to estimate token count from text
-  private estimateTokenCount(text: string): number {
-    // OpenAI uses ~4 chars per token as a rough estimate
+  // Pure function to estimate token count from text based on model
+  private estimateTokenCount(text: string, modelId?: string): number {
+    // Different models might have different token counting characteristics
+    if (modelId && modelId.includes('gpt-4')) {
+      // GPT-4 models use approximately 3.5 chars per token
+      return Math.ceil(text.length / 3.5);
+    }
+    
+    // Default OpenAI token estimation (approximately 4 chars per token)
     return Math.ceil(text.length / 4);
   }
   
   // Pure function to get model by ID
-  private getModelById(modelId: string): AIModel {
+  private getModelById(modelId: string): AIModelDefinition {
     const model = OPENAI_MODELS.find(m => m.id === modelId);
     if (!model) {
       throw new Error(`Unknown OpenAI model: ${modelId}`);
@@ -68,15 +44,16 @@ export class OpenAIAdapter implements AIModelAdapter {
   
   // Estimate cost based on input text and expected output
   estimateCost(inputText: string, modelId: string, expectedOutputTokens?: number): AIModelCostEstimate {
+    // Get the model definition from shared models
     const model = this.getModelById(modelId);
-    const inputTokens = this.estimateTokenCount(inputText);
+    
+    // Estimate input tokens based on model
+    const inputTokens = this.estimateTokenCount(inputText, modelId);
     
     // If expected output tokens not provided, estimate based on input length
-    // For summarization, output is typically ~20% of input
-    // For Q&A, output varies but ~30% is a reasonable estimate
-    const estimatedOutputTokens = expectedOutputTokens || Math.ceil(inputTokens * 0.3);
+    const estimatedOutputTokens = expectedOutputTokens || Math.ceil(inputTokens * 0.5);
     
-    // Calculate costs
+    // Calculate costs using the pricing from the shared model definition
     const inputCost = (inputTokens / 1000) * model.inputCostPer1KTokens;
     const outputCost = (estimatedOutputTokens / 1000) * model.outputCostPer1KTokens;
     
@@ -92,38 +69,44 @@ export class OpenAIAdapter implements AIModelAdapter {
   
   // Process a prompt with the OpenAI API
   async processPrompt(prompt: string, modelId: string, options?: AIModelOptions): Promise<AIModelResponse> {
+    // Get model by ID for cost calculation
     const model = this.getModelById(modelId);
     
-    // Make the API call
-    const response = await this.openai.chat.completions.create({
-      model: modelId,
-      messages: [{ role: 'user', content: prompt }],
-      temperature: options?.temperature || 0.7,
-      max_tokens: options?.maxTokens || Math.min(model.maxTokens, 2000),
-      top_p: options?.topP || 1,
-      frequency_penalty: options?.frequencyPenalty || 0,
-      presence_penalty: options?.presencePenalty || 0
-    });
-    
-    // Extract usage information
-    const usage = response.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
-    
-    // Calculate actual cost
-    const inputCost = (usage.prompt_tokens / 1000) * model.inputCostPer1KTokens;
-    const outputCost = (usage.completion_tokens / 1000) * model.outputCostPer1KTokens;
-    
-    return {
-      text: response.choices[0]?.message?.content || '',
-      usage: {
-        promptTokens: usage.prompt_tokens,
-        completionTokens: usage.completion_tokens,
-        totalTokens: usage.total_tokens
-      },
-      cost: {
-        inputCost,
-        outputCost,
-        totalCost: inputCost + outputCost
-      }
-    };
+    try {
+      // Make the API call
+      const response = await this.openai.chat.completions.create({
+        model: modelId,
+        messages: [{ role: 'user', content: prompt }],
+        temperature: options?.temperature || 0.7,
+        max_tokens: options?.maxTokens || Math.min(model.maxTokens, 2000),
+        top_p: options?.topP || 1,
+        frequency_penalty: options?.frequencyPenalty || 0,
+        presence_penalty: options?.presencePenalty || 0
+      });
+      
+      // Extract usage information
+      const usage = response.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
+      
+      // Calculate actual cost using pricing from the shared model definition
+      const inputCost = (usage.prompt_tokens / 1000) * model.inputCostPer1KTokens;
+      const outputCost = (usage.completion_tokens / 1000) * model.outputCostPer1KTokens;
+      
+      return {
+        text: response.choices[0]?.message?.content || '',
+        usage: {
+          promptTokens: usage.prompt_tokens,
+          completionTokens: usage.completion_tokens,
+          totalTokens: usage.total_tokens
+        },
+        cost: {
+          inputCost,
+          outputCost,
+          totalCost: inputCost + outputCost
+        }
+      };
+    } catch (error) {
+      console.error(`Error calling OpenAI API with model ${modelId}:`, error);
+      throw new Error(`Error processing with OpenAI API: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 }

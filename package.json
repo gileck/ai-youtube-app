@@ -27,6 +27,7 @@
     "react-dom": "^19.0.0",
     "react-markdown": "^10.1.0",
     "react-query": "^3.39.3",
+    "ts-node": "^10.9.2",
     "youtube-transcript": "^1.2.1"
   },
   "devDependencies": {
@@ -51,7 +52,14 @@
       "^@/(.*)$": "<rootDir>/src/$1"
     },
     "transform": {
-      "^.+\\.(ts|tsx)$": ["babel-jest", { "presets": ["next/babel"] }]
+      "^.+\\.(ts|tsx)$": [
+        "babel-jest",
+        {
+          "presets": [
+            "next/babel"
+          ]
+        }
+      ]
     },
     "testMatch": [
       "**/tests/**/*.test.(ts|tsx)"

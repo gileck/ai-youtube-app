@@ -14,6 +14,11 @@ export interface YouTubeSearchResult {
   channelTitle: string;
   thumbnail: string;
   type: string;
+  // Optional fields for enhanced video information
+  duration?: number;           // Duration in seconds
+  durationFormatted?: string;  // Formatted duration (e.g., "5:30")
+  viewCount?: number;          // Number of views
+  likeCount?: number;          // Number of likes
 }
 
 // Video details type
@@ -29,6 +34,20 @@ export interface YouTubeVideoDetails {
   likeCount: number;
   commentCount: number;
   duration: string;
+}
+
+// Channel details type
+export interface YouTubeChannelDetails {
+  id: string;
+  title: string;
+  description: string;
+  publishedAt: string;
+  thumbnail: string;
+  bannerUrl: string | null;
+  subscriberCount: number;
+  videoCount: number;
+  viewCount: number;
+  country: string | null;
 }
 
 // Common response format for YouTube API calls

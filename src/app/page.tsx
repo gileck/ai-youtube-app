@@ -1,10 +1,83 @@
 import React from 'react';
-import { Box, Container, Typography, TextField, Button, Grid, Card, CardMedia, CardContent, InputAdornment } from '@mui/material';
+import { Box, Container, Typography, TextField, Button, Grid, Card, CardMedia, CardContent, InputAdornment, Avatar, Chip } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import Link from 'next/link';
 import AppLayout from '../components/layout/AppLayout';
+import { fetchFeaturedChannels } from '../services/server/youtube/channelService';
+import { formatNumber } from '../utils/formatters';
+import { YouTubeChannelDetails } from '../services/server/youtube/types';
 
-export default function Home() {
+export default async function Home() {
+  // Featured channels (with fallback data in case API fails)
+  const fallbackChannels: YouTubeChannelDetails[] = [
+    {
+      id: 'UCXuqSBlHAE6Xw-yeJA0Tunw',
+      title: 'Linus Tech Tips',
+      description: 'Tech videos, hardware, reviews and more!',
+      publishedAt: '2008-11-24T00:00:00Z',
+      thumbnail: 'https://yt3.googleusercontent.com/ytc/APkrFKbAfC_5NBQ3CM6_6g_Ls5TgUDTHhNMsECbKfNUH=s176-c-k-c0x00ffffff-no-rj',
+      bannerUrl: null,
+      subscriberCount: 15700000,
+      videoCount: 5800,
+      viewCount: 6800000000,
+      country: 'CA'
+    },
+    {
+      id: 'UCBJycsmduvYEL83R_U4JriQ',
+      title: 'Marques Brownlee',
+      description: 'MKBHD: Quality Tech Videos | YouTuber | Geek | Consumer Electronics | Tech Head | Internet Personality!',
+      publishedAt: '2008-03-21T00:00:00Z',
+      thumbnail: 'https://yt3.googleusercontent.com/ytc/APkrFKZWeMCsx4Q9e_Hm6nhOOUQ3fv96QGUXiMr1-pPP=s176-c-k-c0x00ffffff-no-rj',
+      bannerUrl: null,
+      subscriberCount: 18000000,
+      videoCount: 1500,
+      viewCount: 3500000000,
+      country: 'US'
+    },
+    {
+      id: 'UCsBjURrPoezykLs9EqgamOA',
+      title: 'Fireship',
+      description: 'High-intensity code tutorials and tech news to help you ship your app faster',
+      publishedAt: '2017-09-12T00:00:00Z',
+      thumbnail: 'https://yt3.googleusercontent.com/ytc/APkrFKb--NH6RwAGHYsD3KfxX-SAgWgIHrjR5E4Jb5SDSQ=s176-c-k-c0x00ffffff-no-rj',
+      bannerUrl: null,
+      subscriberCount: 2500000,
+      videoCount: 500,
+      viewCount: 300000000,
+      country: 'US'
+    },
+    {
+      id: 'UC8butISFwT-Wl7EV0hUK0BQ',
+      title: 'freeCodeCamp.org',
+      description: 'Learn to code for free',
+      publishedAt: '2014-12-16T00:00:00Z',
+      thumbnail: 'https://yt3.googleusercontent.com/ytc/APkrFKaqca-xQqiQ7mVl8rEn0uZzrBuCPcxlHSR5G_Dqew=s176-c-k-c0x00ffffff-no-rj',
+      bannerUrl: null,
+      subscriberCount: 8000000,
+      videoCount: 1200,
+      viewCount: 1500000000,
+      country: 'US'
+    }
+  ];
+  
+  // Fetch featured channels with fallback
+  let featuredChannels: YouTubeChannelDetails[] = [];
+  try {
+    const response = await fetchFeaturedChannels(4);
+    if (response.success && response.data && response.data.length > 0) {
+      featuredChannels = response.data;
+    } else {
+      // Use fallback data if API fails
+      featuredChannels = fallbackChannels;
+      console.log('Using fallback channel data');
+    }
+  } catch (error) {
+    console.error('Error fetching featured channels:', error);
+    // Use fallback data if API fails
+    featuredChannels = fallbackChannels;
+    console.log('Using fallback channel data due to error');
+  }
+
   // Featured videos (in a real app, these would be fetched from an API)
   const featuredVideos = [
     {
@@ -70,7 +143,7 @@ export default function Home() {
             <TextField
               fullWidth
               name="q"
-              placeholder="Enter YouTube URL or video ID"
+              placeholder="Enter YouTube URL or search term"
               variant="outlined"
               InputProps={{
                 startAdornment: (
@@ -87,9 +160,110 @@ export default function Home() {
               size="large"
               sx={{ px: 4, py: 1.5, borderRadius: 2 }}
             >
-              Analyze
+              Search
             </Button>
           </Box>
+          
+          {/* Search Type Links */}
+          <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center', gap: 2 }}>
+            <Button 
+              component={Link}
+              href="/search?type=video"
+              variant="text"
+              size="small"
+            >
+              Search Videos
+            </Button>
+            <Button 
+              component={Link}
+              href="/search?type=channel"
+              variant="text"
+              size="small"
+            >
+              Search Channels
+            </Button>
+          </Box>
+        </Box>
+
+        {/* Featured Channels */}
+        <Box sx={{ mb: 6 }}>
+          <Typography variant="h5" component="h2" gutterBottom>
+            Featured Channels
+          </Typography>
+          <Grid container spacing={3}>
+            {featuredChannels.length > 0 ? (
+              featuredChannels.map((channel) => (
+                <Grid item key={channel.id} xs={12} sm={6} md={3}>
+                  <Card
+                    sx={{
+                      height: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      transition: 'transform 0.2s',
+                      '&:hover': {
+                        transform: 'translateY(-4px)',
+                      },
+                    }}
+                  >
+                    <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                      <Avatar
+                        component={Link}
+                        href={`/channel/${channel.id}`}
+                        src={channel.thumbnail}
+                        alt={channel.title}
+                        sx={{
+                          width: 80,
+                          height: 80,
+                          mb: 2,
+                          border: '2px solid #f0f0f0',
+                        }}
+                      />
+                      <Typography 
+                        variant="h6" 
+                        component={Link}
+                        href={`/channel/${channel.id}`}
+                        sx={{ 
+                          textAlign: 'center',
+                          textDecoration: 'none',
+                          color: 'inherit',
+                          '&:hover': {
+                            color: 'primary.main',
+                          },
+                        }}
+                      >
+                        {channel.title}
+                      </Typography>
+                      <Box sx={{ mt: 1, display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'center' }}>
+                        <Chip 
+                          label={`${formatNumber(channel.subscriberCount)} subscribers`} 
+                          size="small"
+                          variant="outlined" 
+                        />
+                      </Box>
+                      <Button 
+                        variant="outlined" 
+                        component={Link}
+                        href={`/channel/${channel.id}`}
+                        size="small"
+                        sx={{ mt: 2 }}
+                      >
+                        View Channel
+                      </Button>
+                    </Box>
+                  </Card>
+                </Grid>
+              ))
+            ) : (
+              // Fallback for when channels can't be loaded
+              <Grid item xs={12}>
+                <Box sx={{ textAlign: 'center', py: 4 }}>
+                  <Typography variant="body1" color="text.secondary">
+                    Featured channels could not be loaded
+                  </Typography>
+                </Box>
+              </Grid>
+            )}
+          </Grid>
         </Box>
 
         {/* Featured Videos */}

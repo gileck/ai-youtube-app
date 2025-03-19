@@ -1,32 +1,61 @@
-import React from 'react';
-import { Box, Container, Grid, Paper, Typography } from '@mui/material';
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import { Box, Container, Grid, Paper, Typography, CircularProgress } from '@mui/material';
+import { useParams } from 'next/navigation';
 import VideoPlayer from '../../../components/video/VideoPlayer';
 import VideoDetails from '../../../components/video/VideoDetails';
 import VideoActions from '../../../components/ai/VideoActions';
-import { fetchVideoDetails, YouTubeVideoDetails } from '../../../services/server/youtube/videoService';
+import VideoViewTracker from '../../../components/video/VideoViewTracker';
+import { YouTubeVideoDetails } from '../../../types/shared/youtube';
 import AppLayout from '../../../components/layout/AppLayout';
 
-// This is a server component that fetches video data
-export default async function VideoPage(props: { 
-  params: { id: string } 
-}) {
-  // In Next.js 15, params is asynchronous and must be awaited
-  const { params } = props;
-  const videoId = (await params)?.id;
+// This is a client component that fetches and displays video data
+export default function VideoPage() {
+  const params = useParams();
+  const videoId = params?.id as string;
   
-  // Fetch video data from the YouTube API
-  let videoData: YouTubeVideoDetails | null = null;
-  let error = null;
+  const [videoData, setVideoData] = useState<YouTubeVideoDetails | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   
-  try {
-    const response = await fetchVideoDetails(videoId);
-    if (response.success) {
-      videoData = response.data || null;
-    } else {
-      error = response.error?.message || 'Failed to fetch video details';
-    }
-  } catch (err) {
-    error = err instanceof Error ? err.message : 'An unknown error occurred';
+  useEffect(() => {
+    const fetchVideoData = async () => {
+      if (!videoId) return;
+      
+      setIsLoading(true);
+      setError(null);
+      
+      try {
+        const response = await fetch(`/api/youtube/video?videoId=${videoId}`);
+        const data = await response.json();
+        
+        if (data.success) {
+          setVideoData(data.data || null);
+        } else {
+          setError(data.error?.message || 'Failed to fetch video details');
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchVideoData();
+  }, [videoId]);
+  
+  // Show loading state
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <Container maxWidth="lg">
+          <Box sx={{ py: 8, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <CircularProgress />
+          </Box>
+        </Container>
+      </AppLayout>
+    );
   }
   
   // If we couldn't fetch the video data, show an error
@@ -49,26 +78,33 @@ export default async function VideoPage(props: {
 
   return (
     <AppLayout>
-      <Container maxWidth="lg">
-        <Grid container spacing={3}>
-          <Grid item xs={12}>
-            <VideoPlayer videoId={videoId} />
-          </Grid>
-          
-          <Grid item xs={12}>
-            <VideoDetails video={videoData} />
-          </Grid>
-          
-          <Grid item xs={12}>
-            <Paper sx={{ p: 3, mt: 2 }}>
-              <Typography variant="h6" gutterBottom>
-                AI Actions
-              </Typography>
-              <VideoActions videoId={videoId} videoTitle={videoData.title} />
-            </Paper>
-          </Grid>
-        </Grid>
-      </Container>
+      <VideoViewTracker videoData={videoData}>
+        <Container maxWidth="lg">
+          <Box sx={{ py: 4 }}>
+            {/* Video Player */}
+            <Box sx={{ mb: 4 }}>
+              <VideoPlayer videoId={videoData.id} title={videoData.title} />
+            </Box>
+            
+            <Grid container spacing={4}>
+              {/* Video Details */}
+              <Grid item xs={12} md={7}>
+                <VideoDetails videoData={videoData} />
+              </Grid>
+              
+              {/* AI Actions */}
+              <Grid item xs={12} md={5}>
+                <Paper sx={{ p: 3 }}>
+                  <Typography variant="h6" gutterBottom>
+                    AI Actions
+                  </Typography>
+                  <VideoActions videoId={videoData.id} videoTitle={videoData.title} />
+                </Paper>
+              </Grid>
+            </Grid>
+          </Box>
+        </Container>
+      </VideoViewTracker>
     </AppLayout>
   );
 }
