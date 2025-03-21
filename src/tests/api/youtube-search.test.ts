@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { GET } from '../../../src/app/api/youtube/search/route';
 import { createMocks } from 'node-mocks-http';
-import axios from 'axios';
+import { callYouTubeApi } from '../../../src/services/server/youtube/youtubeApiClient';
 
 // Mock the youtubeApiClient module
 jest.mock('../../../src/services/server/youtube/youtubeApiClient', () => ({
@@ -172,8 +172,7 @@ describe('YouTube Search API', () => {
     });
 
     // Override the mock for this specific test
-    const youtubeApiClient = require('../../../src/services/server/youtube/youtubeApiClient');
-    youtubeApiClient.callYouTubeApi.mockImplementationOnce(() => {
+    (callYouTubeApi as jest.Mock).mockImplementationOnce(() => {
       return Promise.resolve({
         success: false,
         error: {
