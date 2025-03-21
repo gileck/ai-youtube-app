@@ -1,4 +1,4 @@
-import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
+import axios, { AxiosResponse } from 'axios';
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
@@ -32,7 +32,7 @@ export interface YouTubeApiResponse<T> {
   error?: {
     code: string;
     message: string;
-    details?: any;
+    details?: unknown;
   };
   cached?: boolean;
 }
@@ -52,7 +52,7 @@ if (!fs.existsSync(CACHE_DIR)) {
 /**
  * Create a cache key from the endpoint and parameters
  */
-function createCacheKey(endpoint: string, params: Record<string, any>): string {
+function createCacheKey(endpoint: string, params: Record<string, unknown>): string {
   const paramsString = JSON.stringify(params);
   return crypto.createHash('md5').update(`${endpoint}:${paramsString}`).digest('hex');
 }
@@ -65,7 +65,7 @@ function getCachedResponse<T>(cacheKey: string): YouTubeApiResponse<T> | null {
 
   try {
     if (fs.existsSync(cachePath)) {
-      const stats = fs.statSync(cachePath);
+      const fileStats = fs.statSync(cachePath);
       const cacheData = JSON.parse(fs.readFileSync(cachePath, 'utf-8'));
 
       // Check if cache has expired
@@ -115,7 +115,7 @@ function cacheResponse<T>(
 /**
  * Calculate quota cost for a YouTube API call
  */
-function calculateQuotaCost(endpoint: YouTubeEndpoint, params: Record<string, any>): number {
+function calculateQuotaCost(endpoint: YouTubeEndpoint, params: Record<string, unknown>): number {
   const baseCost = YOUTUBE_API_QUOTA_COSTS[endpoint] || 1;
 
   // Special case for videos endpoint with multiple IDs

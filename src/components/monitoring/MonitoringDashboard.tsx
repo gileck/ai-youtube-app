@@ -57,8 +57,36 @@ const formatDuration = (ms: number) => {
   return `${(ms / 1000).toFixed(2)}s`;
 };
 
+// Helper function to format date from timestamp
+const formatDate = (timestamp: number): string => {
+  return new Date(timestamp).toLocaleString();
+};
+
+// Define types for cache entries and YouTube metrics
+interface CacheEntry {
+  key: string;
+  action: string;
+  videoId: string;
+  model: string;
+  timestamp: number;
+  expiresAt: number;
+  hits: number;
+}
+
+interface YouTubeMetricExtended {
+  id?: string;
+  endpoint: string;
+  timestamp: number;
+  duration: number;
+  status: number;
+  cached: boolean;
+  params: Record<string, string>;
+  quotaCost?: number;
+  error?: string;
+}
+
 export default function MonitoringDashboard() {
-  const { stats } = useApiClient();
+  const { } = useApiClient();
   const { settings } = useSettings();
   const { 
     calls, 
@@ -418,7 +446,7 @@ export default function MonitoringDashboard() {
                               </TableRow>
                             </TableHead>
                             <TableBody>
-                              {cacheStats.entries.slice(0, 10).map((entry: any) => (
+                              {cacheStats.entries.slice(0, 10).map((entry: CacheEntry) => (
                                 <TableRow key={entry.key}>
                                   <TableCell>{entry.action}</TableCell>
                                   <TableCell>{entry.videoId}</TableCell>
@@ -853,8 +881,8 @@ export default function MonitoringDashboard() {
                               </TableRow>
                             </TableHead>
                             <TableBody>
-                              {youtubeMetrics.slice(0, 20).map((call: any) => (
-                                <TableRow key={call.id}>
+                              {youtubeMetrics.slice(0, 20).map((call: YouTubeMetricExtended, index) => (
+                                <TableRow key={call.id || index}>
                                   <TableCell>{formatDate(call.timestamp)}</TableCell>
                                   <TableCell>{call.endpoint}</TableCell>
                                   <TableCell>
@@ -871,7 +899,7 @@ export default function MonitoringDashboard() {
                                     )}
                                   </TableCell>
                                   <TableCell>
-                                    {call.success ? (
+                                    {call.status === 200 ? (
                                       <Chip size="small" color="success" label="Success" />
                                     ) : (
                                       <Tooltip title={call.error || 'Unknown error'}>

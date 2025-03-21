@@ -15,7 +15,7 @@ import {
 import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import { AIActionParams, AIResponse } from '../../../../../../types/shared/ai';
+import { AIResponse } from '../../../../../../types/shared/ai';
 import { TakeawayItem } from '../types';
 import { useApiClient } from '../../../../../../contexts/ApiContext';
 import { useSettings } from '../../../../../../contexts/SettingsContext';

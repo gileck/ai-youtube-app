@@ -152,7 +152,7 @@ const generateStructuredRecommendations = async (
 export const keyTakeawayProcessor: AIActionProcessor = {
   name: 'keytakeaway',
 
-  estimateCost: (fullTranscript, chapterContents, model, params) => {
+  estimateCost: (fullTranscript, chapterContents, model) => {
     // Get the appropriate adapter for this model
     const adapter = getAdapterForModel(model);
 
