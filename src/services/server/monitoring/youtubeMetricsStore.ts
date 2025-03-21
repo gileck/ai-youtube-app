@@ -7,12 +7,18 @@ const isTestEnvironment = (): boolean => {
 };
 
 // Directory for storing metrics data
-const DATA_DIR = path.join(process.cwd(), '.data');
+const DATA_DIR = process.env.NODE_ENV === 'production' 
+  ? '/tmp' 
+  : path.join(process.cwd(), '.data');
 const YOUTUBE_METRICS_FILE = path.join(DATA_DIR, 'youtube_metrics.json');
 
 // Ensure data directory exists
 if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
+  try {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  } catch (error) {
+    console.error('Error creating data directory:', error);
+  }
 }
 
 // Interface for YouTube API call metrics

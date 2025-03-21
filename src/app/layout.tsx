@@ -7,6 +7,8 @@ import { MonitoringProvider } from "../contexts/MonitoringContext";
 import { SettingsProvider } from "../contexts/SettingsContext";
 import { ApiProvider } from "../contexts/ApiContext";
 import { ThemeProvider, createTheme } from "@mui/material";
+import { useEffect } from "react";
+import Script from "next/script";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -140,6 +142,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="theme-color" content="#FF3737" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
@@ -154,6 +162,7 @@ export default function RootLayout({
             </ApiProvider>
           </SettingsProvider>
         </ThemeProvider>
+        <Script src="/pwa.js" strategy="lazyOnload" />
       </body>
     </html>
   );

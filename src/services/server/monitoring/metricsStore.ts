@@ -8,19 +8,29 @@ const isTestEnvironment = (): boolean => {
 };
 
 // Directory for storing metrics and cache data
-const DATA_DIR = path.join(process.cwd(), '.data');
+const DATA_DIR = process.env.NODE_ENV === 'production' 
+  ? '/tmp' 
+  : path.join(process.cwd(), '.data');
 const METRICS_FILE = path.join(DATA_DIR, 'ai_metrics.json');
 const CACHE_INDEX_FILE = path.join(DATA_DIR, 'cache_index.json');
 
 // Ensure data directory exists
 if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
+  try {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  } catch (error) {
+    console.error('Error creating data directory:', error);
+  }
 }
 
 // Cache directory for AI responses
 const CACHE_DIR = path.join(DATA_DIR, 'cache');
 if (!fs.existsSync(CACHE_DIR)) {
-  fs.mkdirSync(CACHE_DIR, { recursive: true });
+  try {
+    fs.mkdirSync(CACHE_DIR, { recursive: true });
+  } catch (error) {
+    console.error('Error creating cache directory:', error);
+  }
 }
 
 // Interface for cache index entry

@@ -38,15 +38,25 @@ export interface YouTubeApiResponse<T> {
 }
 
 // Cache directory setup
-const DATA_DIR = path.join(process.cwd(), '.data');
+const DATA_DIR = process.env.NODE_ENV === 'production' 
+  ? '/tmp' 
+  : path.join(process.cwd(), '.data');
 const CACHE_DIR = path.join(DATA_DIR, 'youtube_cache');
 
 // Ensure cache directory exists
 if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
+  try {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  } catch (error) {
+    console.error('Error creating data directory:', error);
+  }
 }
 if (!fs.existsSync(CACHE_DIR)) {
-  fs.mkdirSync(CACHE_DIR, { recursive: true });
+  try {
+    fs.mkdirSync(CACHE_DIR, { recursive: true });
+  } catch (error) {
+    console.error('Error creating cache directory:', error);
+  }
 }
 
 /**
