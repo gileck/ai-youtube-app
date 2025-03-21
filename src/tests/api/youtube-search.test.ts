@@ -3,11 +3,13 @@ import { GET } from '../../../src/app/api/youtube/search/route';
 import { createMocks } from 'node-mocks-http';
 import axios from 'axios';
 
-// Mock the axios module
-jest.mock('axios', () => ({
-  get: jest.fn().mockImplementation((url) => {
-    if (url.includes('googleapis.com/youtube/v3/search')) {
+// Mock the youtubeApiClient module
+jest.mock('../../../src/services/server/youtube/youtubeApiClient', () => ({
+  callYouTubeApi: jest.fn().mockImplementation(({ endpoint, params }) => {
+    // Mock successful search response
+    if (endpoint === 'search' && params.q && process.env.YOUTUBE_API_KEY) {
       return Promise.resolve({
+        success: true,
         data: {
           items: [
             {
@@ -26,10 +28,40 @@ jest.mock('axios', () => ({
               }
             }
           ]
+        },
+        cached: false
+      });
+    }
+    
+    // Mock missing API key error
+    if (!process.env.YOUTUBE_API_KEY) {
+      return Promise.resolve({
+        success: false,
+        error: {
+          code: 'MISSING_API_KEY',
+          message: 'YouTube API key is not configured'
         }
       });
     }
-    return Promise.reject(new Error('Unexpected URL'));
+    
+    // Mock processing error
+    if (endpoint === 'search' && params.q === 'error-test') {
+      return Promise.resolve({
+        success: false,
+        error: {
+          code: 'PROCESSING_ERROR',
+          message: 'YouTube API Error'
+        }
+      });
+    }
+    
+    return Promise.resolve({
+      success: false,
+      error: {
+        code: 'UNKNOWN_ERROR',
+        message: 'Unknown error occurred'
+      }
+    });
   })
 }));
 
@@ -127,22 +159,28 @@ describe('YouTube Search API', () => {
   });
 
   it('should handle YouTube API errors gracefully', async () => {
-    // Mock axios to throw an error
-    const mockedAxios = axios as jest.Mocked<typeof axios>;
-    mockedAxios.get.mockImplementationOnce(() => {
-      return Promise.reject(new Error('YouTube API Error'));
-    });
-
-    // Create a mock request with search query
+    // Create a mock request with search query that will trigger an error
     const { req } = createMocks({
       method: 'GET',
-      url: '/api/youtube/search?query=test'
+      url: '/api/youtube/search?query=error-test'
     });
 
     // Create a NextRequest from the mock request
     const request = new NextRequest(new URL(req.url || '', 'http://localhost'), {
       method: req.method,
       headers: req.headers as Headers
+    });
+
+    // Override the mock for this specific test
+    const youtubeApiClient = require('../../../src/services/server/youtube/youtubeApiClient');
+    youtubeApiClient.callYouTubeApi.mockImplementationOnce(() => {
+      return Promise.resolve({
+        success: false,
+        error: {
+          code: 'PROCESSING_ERROR',
+          message: 'YouTube API Error'
+        }
+      });
     });
 
     // Call the API route handler

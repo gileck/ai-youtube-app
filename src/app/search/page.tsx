@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
-import { Box, Container, Typography, Grid, Card, CardMedia, CardContent, TextField, Button, InputAdornment, ToggleButtonGroup, ToggleButton, Avatar } from '@mui/material';
+import React, { Suspense } from 'react';
+import { Box, Container, Typography, Grid, Card, CardMedia, CardContent, TextField, Button, InputAdornment, ToggleButtonGroup, ToggleButton, Avatar, CircularProgress } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import VideoLibraryIcon from '@mui/icons-material/VideoLibrary';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
@@ -13,8 +13,15 @@ import AppLayout from '../../components/layout/AppLayout';
 import { useHistory } from '../../contexts/HistoryContext';
 import { formatDate } from '../../utils/formatters';
 
-// This is a client component that handles search
-export default function SearchPage() {
+// Loading component for Suspense fallback
+const SearchPageLoading = () => (
+  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+    <CircularProgress />
+  </Box>
+);
+
+// Separate component that uses useSearchParams
+const SearchPageContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const query = searchParams?.get('q') || '';
@@ -637,5 +644,14 @@ export default function SearchPage() {
         </Box>
       </Container>
     </AppLayout>
+  );
+};
+
+// This is a client component that handles search
+export default function SearchPage() {
+  return (
+    <Suspense fallback={<SearchPageLoading />}>
+      <SearchPageContent />
+    </Suspense>
   );
 }

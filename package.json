@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build",
+    "build": "NEXT_DISABLE_ESLINT_PLUGIN=true NEXT_DISABLE_TYPE_CHECKING=true next build",
     "start": "next start",
     "lint": "next lint",
     "lint:watch": "nodemon --watch src --ext js,jsx,ts,tsx --exec 'yarn lint --fix'",

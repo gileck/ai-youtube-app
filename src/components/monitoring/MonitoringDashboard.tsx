@@ -30,7 +30,6 @@ import {
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import InfoIcon from '@mui/icons-material/Info';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import { formatDate as formatDateUtil } from '../../utils/formatters';
 import { useMonitoring } from '../../contexts/MonitoringContext';

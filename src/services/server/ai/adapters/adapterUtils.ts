@@ -6,6 +6,25 @@
 import { AIModelResponse, AIModelMetadata } from './types';
 import { trackAICall, cacheResponse, getCachedResponse } from '../../monitoring/metricsStore';
 
+// Define a type for cached result structure
+interface CachedResultStructure {
+  text?: string;
+  usage?: {
+    promptTokens?: number;
+    completionTokens?: number;
+    totalTokens?: number;
+  };
+  cost?: {
+    inputCost?: number;
+    outputCost?: number;
+    totalCost?: number;
+  };
+  model?: string;
+  provider?: string;
+  videoTitle?: string;
+  parsedJson?: Record<string, unknown>;
+}
+
 /**
  * Process a request with caching and cost tracking
  * This function centralizes the logic for caching and cost tracking across all model adapters
@@ -25,33 +44,33 @@ export const processWithCaching = async (
   
   // Check if caching is enabled and try to get from cache
   if (metadata?.enableCaching) {
-    const cachedResult = getCachedResponse(cacheKey);
+    const cachedResult = getCachedResponse(cacheKey) as CachedResultStructure | null;
     
     if (cachedResult) {
       // For cached results, track the call but with zero cost
       trackAICall({
         videoId: metadata.videoId || 'unknown',
         action: metadata.action || 'unknown',
-        model: metadata.model || (cachedResult as any).model || 'unknown',
-        provider: metadata.provider || (cachedResult as any).provider || 'unknown',
-        inputTokens: (cachedResult as any).usage?.promptTokens || 0,
-        outputTokens: (cachedResult as any).usage?.completionTokens || 0,
+        model: metadata.model || cachedResult.model || 'unknown',
+        provider: metadata.provider || cachedResult.provider || 'unknown',
+        inputTokens: cachedResult.usage?.promptTokens || 0,
+        outputTokens: cachedResult.usage?.completionTokens || 0,
         inputCost: 0, // No cost for cached responses
         outputCost: 0, // No cost for cached responses
         totalCost: 0,  // No cost for cached responses
         duration: 0,   // Negligible duration for cached responses
         success: true,
         isCached: true,
-        videoTitle: (cachedResult as any).videoTitle as string | undefined
+        videoTitle: cachedResult.videoTitle as string | undefined
       });
       
       // Create a properly typed response from the cached result
       const typedResponse: AIModelResponse & { isCached: boolean } = {
-        text: (cachedResult as any).text || '',
+        text: cachedResult.text || '',
         usage: {
-          promptTokens: (cachedResult as any).usage?.promptTokens || 0,
-          completionTokens: (cachedResult as any).usage?.completionTokens || 0,
-          totalTokens: (cachedResult as any).usage?.totalTokens || 0
+          promptTokens: cachedResult.usage?.promptTokens || 0,
+          completionTokens: cachedResult.usage?.completionTokens || 0,
+          totalTokens: cachedResult.usage?.totalTokens || 0
         },
         cost: {
           inputCost: 0,
@@ -62,20 +81,20 @@ export const processWithCaching = async (
       };
       
       // Add optional properties if they exist in the cached result
-      if ((cachedResult as any).parsedJson) {
-        typedResponse.parsedJson = (cachedResult as any).parsedJson;
+      if (cachedResult.parsedJson) {
+        typedResponse.parsedJson = cachedResult.parsedJson;
       }
       
-      if ((cachedResult as any).videoTitle) {
-        typedResponse.videoTitle = (cachedResult as any).videoTitle;
+      if (cachedResult.videoTitle) {
+        typedResponse.videoTitle = cachedResult.videoTitle;
       }
       
-      if ((cachedResult as any).model) {
-        typedResponse.model = (cachedResult as any).model;
+      if (cachedResult.model) {
+        typedResponse.model = cachedResult.model;
       }
       
-      if ((cachedResult as any).provider) {
-        typedResponse.provider = (cachedResult as any).provider;
+      if (cachedResult.provider) {
+        typedResponse.provider = cachedResult.provider;
       }
       
       return typedResponse;
