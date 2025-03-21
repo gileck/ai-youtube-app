@@ -3,14 +3,12 @@
 import React from 'react';
 import { 
   Box, 
-  Paper, 
   Typography, 
   Divider, 
   Slider, 
   Switch,
   Grid,
   Alert,
-  FormControlLabel,
   Card,
   CardContent,
   CardHeader,
@@ -222,7 +220,7 @@ export default function SettingsPanel() {
               <Alert severity="info" sx={{ mt: 2 }}>
                 <Typography variant="body2">
                   When the estimated cost of an AI operation exceeds ${settings.costApprovalThreshold.toFixed(2)}, 
-                  you'll be asked for approval before processing.
+                  you&apos;ll be asked for approval before processing.
                 </Typography>
               </Alert>
             </Box>

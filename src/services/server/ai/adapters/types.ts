@@ -13,15 +13,16 @@ export interface AIModelAdapter {
   // Estimate cost based on input text and expected output length
   estimateCost: (
     inputText: string, 
-    model: string, 
+    modelId: string, 
     expectedOutputTokens?: number
   ) => AIModelCostEstimate;
   
   // Process a prompt with the AI model
   processPrompt: (
     prompt: string, 
-    model: string, 
-    options?: AIModelOptions
+    modelId: string, 
+    options?: AIModelOptions,
+    metadata?: AIModelMetadata
   ) => Promise<AIModelResponse>;
 }
 
@@ -46,6 +47,20 @@ export interface AIModelOptions {
   topP?: number;
   frequencyPenalty?: number;
   presencePenalty?: number;
+  responseType?: 'json' | 'text'; // Unified response type option
+  responseSchema?: object;       // Optional schema for structured responses
+}
+
+/**
+ * Metadata for tracking
+ */
+export interface AIModelMetadata {
+  videoId?: string;
+  action?: string;
+  enableCaching?: boolean;
+  cacheTTL?: number; // Time to live in milliseconds
+  model?: string;    // Model identifier
+  provider?: string; // Provider identifier (openai, google, etc.)
 }
 
 /**
@@ -53,6 +68,7 @@ export interface AIModelOptions {
  */
 export interface AIModelResponse {
   text: string;
+  parsedJson?: Record<string, unknown>; // Parsed JSON when responseType is 'json'
   usage: {
     promptTokens: number;
     completionTokens: number;
@@ -63,4 +79,8 @@ export interface AIModelResponse {
     outputCost: number;
     totalCost: number;
   };
+  videoTitle?: string; // Optional video title for tracking purposes
+  isCached?: boolean;  // Whether this response was retrieved from cache
+  model?: string;      // Model identifier
+  provider?: string;   // Provider identifier (openai, google, etc.)
 }

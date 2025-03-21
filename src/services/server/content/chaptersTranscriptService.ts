@@ -90,32 +90,33 @@ function initializeChaptersWithContent(chapters: Chapter[]): ChapterWithContent[
  * @param chapters Array of chapters
  * @returns Index of the matching chapter or -1 if not found
  */
-function findChapterForTimestamp(timestamp: number, chapters: Chapter[]): number {
-  for (let i = 0; i < chapters.length; i++) {
-    const chapter = chapters[i];
-    
-    // Check if timestamp is within this chapter's time range
-    if (timestamp >= chapter.startTime && timestamp < chapter.endTime) {
-      return i;
-    }
-  }
-  
-  // If we didn't find a direct match, use a fallback approach
-  // This can happen if there are gaps between chapters or if timestamps are outside chapter ranges
-  
-  // If timestamp is before the first chapter, assign to first chapter
-  if (chapters.length > 0 && timestamp < chapters[0].startTime) {
-    return 0;
-  }
-  
-  // If timestamp is after the last chapter's end time, assign to last chapter
-  if (chapters.length > 0 && timestamp >= chapters[chapters.length - 1].endTime) {
-    return chapters.length - 1;
-  }
-  
-  // For any other case, return -1 to indicate no matching chapter
-  return -1;
-}
+// Function commented out as it's not currently used but may be needed in the future
+// function findChapterForTimestamp(timestamp: number, chapters: Chapter[]): number {
+//   for (let i = 0; i < chapters.length; i++) {
+//     const chapter = chapters[i];
+//     
+//     // Check if timestamp is within this chapter's time range
+//     if (timestamp >= chapter.startTime && timestamp < chapter.endTime) {
+//       return i;
+//     }
+//   }
+//   
+//   // If we didn't find a direct match, use a fallback approach
+//   // This can happen if there are gaps between chapters or if timestamps are outside chapter ranges
+//   
+//   // If timestamp is before the first chapter, assign to first chapter
+//   if (chapters.length > 0 && timestamp < chapters[0].startTime) {
+//     return 0;
+//   }
+//   
+//   // If timestamp is after the last chapter's end time, assign to last chapter
+//   if (chapters.length > 0 && timestamp >= chapters[chapters.length - 1].endTime) {
+//     return chapters.length - 1;
+//   }
+//   
+//   // For any other case, return -1 to indicate no matching chapter
+//   return -1;
+// }
 
 /**
  * Calculate relative position of a timestamp within a chapter (0-1)
@@ -221,7 +222,7 @@ export function combineTranscriptAndChapters(
   const chaptersWithContent = initializeChaptersWithContent(overlappedChapters);
   
   // 3. Map each transcript item to all matching chapters
-  transcript.forEach((item, index) => {
+  transcript.forEach((item) => {
     const segmentTimeSeconds = item.offset;
     
     // Find all chapters that contain this timestamp
@@ -247,14 +248,7 @@ export function combineTranscriptAndChapters(
     }
   });
   
-  // 4. Log distribution for debugging
-  console.log('Transcript distribution across chapters:');
-  chaptersWithContent.forEach((chapter, index) => {
-    const percentage = (chapter.segments.length / transcript.length * 100).toFixed(1);
-    console.log(`Chapter ${index}: ${chapter.segments.length} items (${percentage}%)`);
-  });
-  
-  // 5. Post-processing
+  // 4. Post-processing
   return finalizeOutput(chaptersWithContent, transcript, videoId, options);
 }
 

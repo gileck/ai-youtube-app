@@ -11,7 +11,7 @@ interface ChannelViewTrackerProps {
 
 export default function ChannelViewTracker({ channelData, children }: ChannelViewTrackerProps) {
   const { addToHistory } = useHistory();
-  
+
   useEffect(() => {
     // Track this channel view in history
     if (channelData) {
@@ -23,6 +23,6 @@ export default function ChannelViewTracker({ channelData, children }: ChannelVie
       });
     }
   }, [channelData]);
-  
+
   return <>{children}</>;
 }

@@ -1,4 +1,4 @@
-import parseYouTubeChapters from 'get-youtube-chapters';
+import parseYouTubeChapters from './parseChapters';
 import axios from 'axios';
 
 export interface Chapter {
@@ -22,28 +22,28 @@ export async function fetchChapters(videoId: string): Promise<Chapter[]> {
       console.error('YouTube API key not found in environment variables');
       return [];
     }
-    
+
     const response = await axios.get(
       `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${apiKey}`
     );
-    
+
     if (!response.data.items || response.data.items.length === 0) {
       return [];
     }
-    
+
     const description = response.data.items[0].snippet.description;
-    
+
     // Parse chapters from the description
     const rawChapters = parseYouTubeChapters(description);
-    
+
     if (!rawChapters || !Array.isArray(rawChapters) || rawChapters.length === 0) {
       return [];
     }
-    
+
     // Transform to our internal format and calculate end times
     return rawChapters.map((chapter, index, array) => {
       const nextChapter = array[index + 1];
-      
+
       return {
         title: chapter.title,
         startTime: chapter.start,

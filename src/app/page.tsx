@@ -69,13 +69,11 @@ export default async function Home() {
     } else {
       // Use fallback data if API fails
       featuredChannels = fallbackChannels;
-      console.log('Using fallback channel data');
     }
   } catch (error) {
     console.error('Error fetching featured channels:', error);
     // Use fallback data if API fails
     featuredChannels = fallbackChannels;
-    console.log('Using fallback channel data due to error');
   }
 
   // Featured videos (in a real app, these would be fetched from an API)

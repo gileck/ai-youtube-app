@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { Box, Typography, Paper, Grid, Chip, Button, Divider, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
-import { AIHistoryItem } from '../../types/shared/ai';
+import { AIHistoryItem } from '../../services/client/ai/types';
 import { getHistoryItems, removeHistoryItem, clearHistory } from '../../services/client/historyService';
 
 export default function HistoryList() {
@@ -65,8 +65,31 @@ export default function HistoryList() {
       
       // For keypoints or other string results
       return <Typography variant="body2">{item.result}</Typography>;
-    } else {
-      // For structured results (summary)
+    } else if (item.action === 'topics' && 'chapterTopics' in item.result) {
+      // For Topics action
+      return (
+        <Box>
+          <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+            Topics by Chapter
+          </Typography>
+          
+          {item.result.chapterTopics.map((chapter, index) => (
+            <Box key={index} sx={{ mb: 2 }}>
+              <Typography variant="subtitle2" fontWeight="bold">{chapter.title}</Typography>
+              <Box sx={{ pl: 2 }}>
+                {chapter.topics.map((topic, topicIndex) => (
+                  <Box key={topicIndex} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                    <Typography sx={{ mr: 1 }}>{topic.emoji}</Typography>
+                    <Typography variant="body2">{topic.text}</Typography>
+                  </Box>
+                ))}
+              </Box>
+            </Box>
+          ))}
+        </Box>
+      );
+    } else if ('finalSummary' in item.result && 'chapterSummaries' in item.result) {
+      // For Summary action
       return (
         <Box>
           <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
@@ -88,6 +111,13 @@ export default function HistoryList() {
             </>
           )}
         </Box>
+      );
+    } else {
+      // Fallback for unknown structured results
+      return (
+        <Typography variant="body2">
+          {JSON.stringify(item.result, null, 2)}
+        </Typography>
       );
     }
   };

@@ -1,100 +1,31 @@
 'use client';
 
 import React, { useState } from 'react';
-import { 
-  Box, 
-  Button, 
-  Dialog, 
-  DialogActions, 
-  DialogContent, 
-  DialogContentText, 
+import {
+  Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
   DialogTitle,
   TextField,
   CircularProgress,
   Typography,
-  Paper,
-  Divider
+  Paper
 } from '@mui/material';
-import SummarizeIcon from '@mui/icons-material/Summarize';
-import QuestionAnswerIcon from '@mui/icons-material/QuestionAnswer';
-import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useApiClient } from '../../contexts/ApiContext';
-import { AIActionParams, AIResponse } from '../../types/shared/ai';
+import { AIActionParams, AIResponse } from '../../services/client/ai/types';
 import { addHistoryItem } from '../../services/client/historyService';
+import { AI_ACTIONS } from '../../services/client/ai';
+import { ACTION_TYPES } from '../../services/server/ai/aiActions/constants';
+import AIActionWrapper from './AIActionWrapper';
 
 interface VideoActionsProps {
   videoId: string;
   videoTitle: string;
 }
-
-// Define the available AI actions with their renderers
-type ActionRendererProps = {
-  result: AIResponse;
-  params?: AIActionParams;
-};
-
-// Define the available AI actions
-const AI_ACTIONS: Record<string, {
-  label: string;
-  icon: React.ReactNode;
-  description: string;
-  renderResult: (props: ActionRendererProps) => React.ReactNode;
-}> = {
-  summary: {
-    label: 'Summarize',
-    icon: <SummarizeIcon />,
-    description: 'Generate a concise summary of the video content',
-    renderResult: ({ result }: ActionRendererProps) => {
-      if (typeof result === 'string') {
-        return <Typography>{result}</Typography>;
-      }
-      
-      return (
-        <Box>
-          <Typography variant="h6" gutterBottom>Summary</Typography>
-          <Typography paragraph>{result.finalSummary}</Typography>
-          
-          <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>Chapter Summaries</Typography>
-          {result.chapterSummaries.map((chapter, index) => (
-            <Paper key={index} sx={{ p: 2, mb: 2 }}>
-              <Typography variant="subtitle1" fontWeight="bold">{chapter.title}</Typography>
-              <Typography>{chapter.summary}</Typography>
-            </Paper>
-          ))}
-        </Box>
-      );
-    }
-  },
-  question: {
-    label: 'Ask a Question',
-    icon: <QuestionAnswerIcon />,
-    description: 'Ask a specific question about the video content',
-    renderResult: ({ result, params }: ActionRendererProps) => {
-      if (params?.type !== 'question') return null;
-      
-      return (
-        <Box>
-          <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-            Q: {params.question}
-          </Typography>
-          <Divider sx={{ my: 1 }} />
-          <Typography variant="body1">
-            A: {result as string}
-          </Typography>
-        </Box>
-      );
-    }
-  },
-  keypoints: {
-    label: 'Key Points',
-    icon: <FormatListBulletedIcon />,
-    description: 'Extract the main points from the video',
-    renderResult: ({ result }: ActionRendererProps) => {
-      return <Typography>{result as string}</Typography>;
-    }
-  }
-};
 
 export default function VideoActions({ videoId, videoTitle }: VideoActionsProps) {
   const { settings } = useSettings();
@@ -108,55 +39,57 @@ export default function VideoActions({ videoId, videoTitle }: VideoActionsProps)
   const [question, setQuestion] = useState('');
   const [questionDialog, setQuestionDialog] = useState(false);
   const [actionParams, setActionParams] = useState<AIActionParams | null>(null);
-  
+
   // Handle action button click
   const handleActionClick = async (action: string) => {
     // For question action, open the question dialog first
-    if (action === 'question') {
+    if (action === ACTION_TYPES.QUESTION) {
       setActiveAction(action);
       setQuestionDialog(true);
       return;
     }
-    
+
     // For other actions, process directly
     await processAction(action);
   };
-  
+
   // Create appropriate action parameters based on action type
   const createActionParams = (action: string, extraParams?: Record<string, unknown>): AIActionParams => {
     switch (action) {
-      case 'summary':
-        return { type: 'summary', ...(extraParams as { maxLength?: number }) };
-      case 'question':
+      case ACTION_TYPES.SUMMARY:
+        return { type: ACTION_TYPES.SUMMARY, ...(extraParams as { maxLength?: number }) };
+      case ACTION_TYPES.QUESTION:
         if (extraParams?.question) {
-          return { type: 'question', question: extraParams.question as string };
+          return { type: ACTION_TYPES.QUESTION, question: extraParams.question as string };
         }
         throw new Error('Question parameter is required for question action');
-      case 'keypoints':
-        return { type: 'keypoints', ...(extraParams as { count?: number }) };
-      case 'sentiment':
-        return { type: 'sentiment' };
+      case ACTION_TYPES.KEYPOINTS:
+        return { type: ACTION_TYPES.KEYPOINTS, ...(extraParams as { count?: number }) };
+      case ACTION_TYPES.TOPICS:
+        return { type: ACTION_TYPES.TOPICS };
+      case ACTION_TYPES.KEYTAKEAWAY:
+        return { type: ACTION_TYPES.KEYTAKEAWAY, ...(extraParams as { count?: number }) };
       default:
         throw new Error(`Unsupported action type: ${action}`);
     }
   };
-  
+
   // Process the selected action
   const processAction = async (action: string, params?: Record<string, unknown>) => {
     setActiveAction(action);
     setLoading(true);
     setError(null);
     setResult(null);
-    
+
     try {
       if (!apiClient) {
         throw new Error('API client is not initialized');
       }
-      
+
       // Create typed action parameters
       const actionParams = createActionParams(action, params);
       setActionParams(actionParams);
-      
+
       const response = await apiClient.processVideo({
         videoId,
         action,
@@ -164,30 +97,43 @@ export default function VideoActions({ videoId, videoTitle }: VideoActionsProps)
         costApprovalThreshold: settings.costApprovalThreshold,
         params: actionParams
       });
-      
+
       if (!response.success) {
         throw new Error(response.error?.message || 'An error occurred');
       }
-      
+
       if (response.needApproval) {
         setEstimatedCost(response.estimatedCost || 0);
         setApprovalDialog(true);
-        setLoading(false);
         return;
       }
+
+      // Log the response to help debug cost information
+      console.log('API response:', response);
       
-      setResult(response.data?.result || null);
+      // Store the cost separately instead of modifying the result
+      let responseCost = 0;
       
+      if (response.data) {
+        responseCost = response.data.cost || 0;
+        console.log('Response data cost:', responseCost);
+        
+        // Set the result without modifying its structure
+        setResult(response.data.result || null);
+      }
+
       // Add to history
       if (response.data?.result) {
-        addHistoryItem(
+        addHistoryItem({
+          id: Date.now().toString(),
           videoId,
           videoTitle,
           action,
-          response.data.cost,
-          response.data.result,
-          actionParams
-        );
+          timestamp: Date.now(),
+          cost: responseCost,
+          result: response.data.result,
+          params: actionParams || createActionParams(action) // Provide default params if null
+        });
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unknown error occurred');
@@ -195,19 +141,15 @@ export default function VideoActions({ videoId, videoTitle }: VideoActionsProps)
       setLoading(false);
     }
   };
-  
+
   // Handle approval confirmation
-  const handleApprove = async () => {
+  const handleApprovalConfirm = async () => {
     setApprovalDialog(false);
     setLoading(true);
     
     try {
-      if (!activeAction || !actionParams) {
-        throw new Error('Missing action parameters');
-      }
-      
-      if (!apiClient) {
-        throw new Error('API client is not initialized');
+      if (!apiClient || !activeAction) {
+        throw new Error('API client or active action is not initialized');
       }
       
       const response = await apiClient.processVideo({
@@ -216,25 +158,39 @@ export default function VideoActions({ videoId, videoTitle }: VideoActionsProps)
         model: settings.aiModel,
         costApprovalThreshold: settings.costApprovalThreshold,
         approved: true,
-        params: actionParams
+        params: actionParams || undefined
       });
       
       if (!response.success) {
         throw new Error(response.error?.message || 'An error occurred');
       }
       
-      setResult(response.data?.result || null);
+      // Log the response to help debug cost information
+      console.log('API response after approval:', response);
+      
+      // Store the cost separately instead of modifying the result
+      let responseCost = 0;
+      
+      if (response.data) {
+        responseCost = response.data.cost || 0;
+        console.log('Response data cost after approval:', responseCost);
+        
+        // Set the result without modifying its structure
+        setResult(response.data.result || null);
+      }
       
       // Add to history
       if (response.data?.result) {
-        addHistoryItem(
+        addHistoryItem({
+          id: Date.now().toString(),
           videoId,
           videoTitle,
-          activeAction,
-          response.data.cost,
-          response.data.result,
-          actionParams
-        );
+          action: activeAction,
+          timestamp: Date.now(),
+          cost: responseCost,
+          result: response.data.result,
+          params: actionParams || createActionParams(activeAction) // Provide default params if null
+        });
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unknown error occurred');
@@ -242,25 +198,98 @@ export default function VideoActions({ videoId, videoTitle }: VideoActionsProps)
       setLoading(false);
     }
   };
-  
+
   // Handle question submission
   const handleQuestionSubmit = () => {
     if (!question.trim()) return;
-    
+
     setQuestionDialog(false);
-    processAction('question', { question: question.trim() });
+    processAction(ACTION_TYPES.QUESTION, { question: question.trim() });
   };
-  
-  // Render the result of the AI action
+
+  // Render the result of an AI action
   const renderActionResult = () => {
     if (!activeAction || !result) return null;
     
-    const action = AI_ACTIONS[activeAction];
-    if (!action) return null;
+    const actionRenderer = AI_ACTIONS[activeAction];
+    if (!actionRenderer) return null;
     
-    return action.renderResult({ result, params: actionParams || undefined });
+    // Extract details from the response
+    let cost: number | undefined = undefined;
+    let isCached = false;
+    let tokens = 0;
+    let processingTime = 0;
+    
+    console.log('Result in renderActionResult:', result);
+    
+    if (typeof result === 'object' && result !== null) {
+      // Handle the case where result is an array of chapter takeaways
+      if (Array.isArray(result) && result.length > 0) {
+        console.log('Result is an array:', result);
+        const item = result[0];
+        
+        if (item && typeof item === 'object') {
+          if ('cost' in item && typeof item.cost === 'number') {
+            cost = item.cost;
+            console.log('Found cost in array item:', cost);
+          }
+          
+          if ('isCached' in item) {
+            isCached = Boolean(item.isCached);
+          }
+          
+          if ('tokens' in item && item.tokens !== undefined) {
+            tokens = Number(item.tokens) || 0;
+          }
+          
+          if ('processingTime' in item && item.processingTime !== undefined) {
+            processingTime = Number(item.processingTime) || 0;
+          }
+        }
+      } 
+      // Handle the case where result has direct properties
+      else {
+        const resultObj = result as Record<string, unknown>;
+        
+        if ('cost' in resultObj && typeof resultObj.cost === 'number') {
+          cost = resultObj.cost;
+          console.log('Found direct cost:', cost);
+        }
+        
+        if ('isCached' in resultObj) {
+          isCached = Boolean(resultObj.isCached);
+        }
+        
+        if ('tokens' in resultObj && resultObj.tokens !== undefined) {
+          tokens = Number(resultObj.tokens) || 0;
+        }
+        
+        if ('processingTime' in resultObj && resultObj.processingTime !== undefined) {
+          processingTime = Number(resultObj.processingTime) || 0;
+        }
+      }
+    }
+    
+    console.log('Final cost value:', cost);
+    
+    return (
+      <AIActionWrapper 
+        cost={cost} 
+        model={settings.aiModel}
+        actionType={actionRenderer.label}
+        isCached={isCached}
+        tokens={tokens}
+        processingTime={processingTime}
+      >
+        {actionRenderer.renderResult({ 
+          result, 
+          params: actionParams || undefined,
+          videoId
+        })}
+      </AIActionWrapper>
+    );
   };
-  
+
   return (
     <Box>
       {/* AI Action Buttons */}
@@ -278,28 +307,28 @@ export default function VideoActions({ videoId, videoTitle }: VideoActionsProps)
           </Button>
         ))}
       </Box>
-      
+
       {/* Loading Indicator */}
       {loading && (
         <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
           <CircularProgress />
         </Box>
       )}
-      
+
       {/* Error Message */}
       {error && (
         <Paper sx={{ p: 2, mb: 3, bgcolor: '#ffebee' }}>
           <Typography color="error">{error}</Typography>
         </Paper>
       )}
-      
+
       {/* Result Display */}
       {result && (
         <Paper sx={{ p: 3, mt: 2 }}>
           {renderActionResult()}
         </Paper>
       )}
-      
+
       {/* Cost Approval Dialog */}
       <Dialog
         open={approvalDialog}
@@ -314,12 +343,12 @@ export default function VideoActions({ videoId, videoTitle }: VideoActionsProps)
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setApprovalDialog(false)}>Cancel</Button>
-          <Button onClick={handleApprove} variant="contained" color="primary">
+          <Button onClick={handleApprovalConfirm} variant="contained" color="primary">
             Approve
           </Button>
         </DialogActions>
       </Dialog>
-      
+
       {/* Question Dialog */}
       <Dialog
         open={questionDialog}
@@ -345,9 +374,9 @@ export default function VideoActions({ videoId, videoTitle }: VideoActionsProps)
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setQuestionDialog(false)}>Cancel</Button>
-          <Button 
-            onClick={handleQuestionSubmit} 
-            variant="contained" 
+          <Button
+            onClick={handleQuestionSubmit}
+            variant="contained"
             color="primary"
             disabled={!question.trim()}
           >

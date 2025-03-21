@@ -1,0 +1,35 @@
+This is a TODO list for AI
+
+* if you are not sure about a task, ask the user for clarification
+* if you already completed a task, ignore it and move on to the next one.
+
+After Completing a Task:
+* Make sure the task is completed
+* Remove the task from the list (only after getting confirmation from the user)
+
+
+
+TODOS:
+
+
+=================
+=================
+New AI ACTION:
+
+- called Key Takeaway
+- will display a list of all specific actionable Takeaway from the video.
+- the takeaway will be specific and actionable, and also specify the details from the content. They will include specificics about the actions. 
+- For each one, the user will be able to click on it and get more details (collapsed by default, expended on click).
+- the takeaway details will include why it works, and what is the mechanism behind it.
+- each takeaway will include a related emoji.
+
+
+FUTURE PLANS (not part of this release):
+- the user will be able to save the takeaway to their profile.
+
+
+
+
+
+
+

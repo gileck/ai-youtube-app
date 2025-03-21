@@ -1,4 +1,4 @@
-import { AIHistoryItem, AIActionParams, AIResponse } from '../../types/shared/ai';
+import { AIHistoryItem, AIActionParams, AIResponse } from './ai/types';
 
 const HISTORY_STORAGE_KEY = 'aiActionHistory';
 
@@ -10,7 +10,7 @@ const generateId = (): string => {
 };
 
 /**
- * Pure function to get history items from localStorage
+ * Pure function to get all history items
  */
 export const getHistoryItems = (): AIHistoryItem[] => {
   try {
@@ -19,37 +19,48 @@ export const getHistoryItems = (): AIHistoryItem[] => {
       return JSON.parse(storedHistory);
     }
   } catch (error) {
-    console.error('Failed to parse history:', error);
+    console.error('Error retrieving history:', error);
   }
+  
   return [];
 };
 
 /**
  * Pure function to add a history item
  */
-export const addHistoryItem = (
-  videoId: string,
-  videoTitle: string,
-  action: string,
-  cost: number,
-  result: AIResponse,
-  params: AIActionParams
-): AIHistoryItem => {
+export const addHistoryItem = (item: {
+  id?: string;
+  videoId: string;
+  videoTitle: string;
+  action: string;
+  result: AIResponse;
+  cost: number;
+  timestamp?: number;
+  params: AIActionParams;
+}): AIHistoryItem => {
   const historyItems = getHistoryItems();
   
   const newItem: AIHistoryItem = {
-    id: generateId(),
-    videoId,
-    videoTitle,
-    action,
-    timestamp: Date.now(),
-    cost,
-    result,
-    params
+    id: item.id || generateId(),
+    videoId: item.videoId,
+    videoTitle: item.videoTitle,
+    action: item.action,
+    timestamp: item.timestamp || Date.now(),
+    result: item.result,
+    cost: item.cost,
+    params: item.params
   };
   
-  const updatedHistory = [newItem, ...historyItems].slice(0, 100); // Keep only the latest 100 items
-  localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(updatedHistory));
+  historyItems.unshift(newItem);
+  
+  // Limit to 50 items
+  const limitedItems = historyItems.slice(0, 50);
+  
+  try {
+    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(limitedItems));
+  } catch (error) {
+    console.error('Error saving history:', error);
+  }
   
   return newItem;
 };
@@ -59,19 +70,28 @@ export const addHistoryItem = (
  */
 export const removeHistoryItem = (id: string): boolean => {
   const historyItems = getHistoryItems();
-  const updatedHistory = historyItems.filter(item => item.id !== id);
+  const filteredItems = historyItems.filter(item => item.id !== id);
   
-  if (updatedHistory.length !== historyItems.length) {
-    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(updatedHistory));
-    return true;
+  if (filteredItems.length === historyItems.length) {
+    return false; // No item was removed
   }
   
-  return false;
+  try {
+    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(filteredItems));
+    return true;
+  } catch (error) {
+    console.error('Error saving history after removal:', error);
+    return false;
+  }
 };
 
 /**
  * Pure function to clear all history
  */
 export const clearHistory = (): void => {
-  localStorage.removeItem(HISTORY_STORAGE_KEY);
+  try {
+    localStorage.removeItem(HISTORY_STORAGE_KEY);
+  } catch (error) {
+    console.error('Error clearing history:', error);
+  }
 };

@@ -10,16 +10,24 @@ import {
   CardContent, 
   Chip,
   Stack,
-  IconButton
+  IconButton,
+  List,
+  ListItem,
+  ListItemAvatar,
+  ListItemText,
+  Avatar,
+  Paper,
+  Divider
 } from '@mui/material';
 import Link from 'next/link';
 import VisibilityIcon from '@mui/icons-material/Visibility';
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import ThumbUpIcon from '@mui/icons-material/ThumbUp';
 import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder';
 import BookmarkIcon from '@mui/icons-material/Bookmark';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import { formatNumber } from '../../utils/formatters';
 import { useHistory } from '../../contexts/HistoryContext';
+import { formatDistanceToNow, format } from 'date-fns';
 
 // Format duration for display
 const formatDurationLabel = (seconds: number) => {
@@ -33,14 +41,53 @@ const formatDurationLabel = (seconds: number) => {
   }
 };
 
+// Format publish date
+const formatPublishDate = (dateString: string): string => {
+  try {
+    const date = new Date(dateString);
+    return formatDistanceToNow(date, { addSuffix: true });
+  } catch (error) {
+    console.error("Error formatting publish date:", error);
+    return 'Unknown date';
+  }
+};
+
+// Format full date
+const formatFullDate = (dateString: string): string => {
+  try {
+    const date = new Date(dateString);
+    return format(date, 'MMM d, yyyy');
+  } catch (error) {
+    console.error("Error formatting full date:", error);
+    return 'Unknown date';
+  }
+};
+
 interface ChannelVideosProps {
-  videos: any[];
+  videos: {
+    id: string;
+    title: string;
+    thumbnail: string;
+    channelId: string;
+    channelTitle: string;
+    publishedAt: string;
+    duration?: number;
+    viewCount?: number;
+    likeCount?: number;
+  }[];
+  viewMode?: 'grid' | 'list';
 }
 
-export default function ChannelVideos({ videos }: ChannelVideosProps) {
+export default function ChannelVideos({ videos, viewMode = 'grid' }: ChannelVideosProps) {
   const { isBookmarked, addToBookmarks, removeFromBookmarks } = useHistory();
   
-  const handleBookmarkToggle = (video: any) => {
+  const handleBookmarkToggle = (video: {
+    id: string;
+    title: string;
+    thumbnail: string;
+    channelId: string;
+    channelTitle: string;
+  }) => {
     if (isBookmarked(video.id)) {
       removeFromBookmarks(video.id);
     } else {
@@ -65,6 +112,165 @@ export default function ChannelVideos({ videos }: ChannelVideosProps) {
     );
   }
 
+  // Render videos in list view mode
+  if (viewMode === 'list') {
+    return (
+      <Paper variant="outlined">
+        <List sx={{ width: '100%', p: 0 }}>
+          {videos.map((video, index) => (
+            <React.Fragment key={video.id}>
+              {index > 0 && <Divider component="li" />}
+              <ListItem 
+                alignItems="flex-start"
+                sx={{ 
+                  py: 2,
+                  '&:hover': {
+                    bgcolor: 'action.hover',
+                  }
+                }}
+                secondaryAction={
+                  <IconButton 
+                    edge="end" 
+                    onClick={() => handleBookmarkToggle(video)}
+                    size="small"
+                  >
+                    {isBookmarked(video.id) ? (
+                      <BookmarkIcon fontSize="small" color="primary" />
+                    ) : (
+                      <BookmarkBorderIcon fontSize="small" />
+                    )}
+                  </IconButton>
+                }
+              >
+                <ListItemAvatar sx={{ mr: 2 }}>
+                  <Box sx={{ position: 'relative', width: 120, height: 68 }}>
+                    <Avatar 
+                      variant="rounded"
+                      src={video.thumbnail}
+                      alt={video.title}
+                      sx={{ 
+                        width: 120, 
+                        height: 68,
+                        borderRadius: 1
+                      }}
+                      component={Link}
+                      href={`/video/${video.id}`}
+                    />
+                    {video.duration && (
+                      <Chip
+                        label={formatDurationLabel(video.duration)}
+                        size="small"
+                        sx={{
+                          position: 'absolute',
+                          bottom: 4,
+                          right: 4,
+                          bgcolor: 'rgba(0, 0, 0, 0.7)',
+                          color: 'white',
+                          '& .MuiChip-label': {
+                            px: 1,
+                            fontSize: '0.7rem',
+                          },
+                          height: 20,
+                        }}
+                      />
+                    )}
+                  </Box>
+                </ListItemAvatar>
+                <ListItemText
+                  primary={
+                    <Typography 
+                      variant="body1" 
+                      component={Link} 
+                      href={`/video/${video.id}`}
+                      sx={{ 
+                        fontWeight: 'medium',
+                        textDecoration: 'none',
+                        color: 'inherit',
+                        '&:hover': {
+                          color: 'primary.main',
+                        },
+                        mb: 1,
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        lineHeight: 1.2,
+                      }}
+                    >
+                      {video.title}
+                    </Typography>
+                  }
+                  secondary={
+                    <Box sx={{ mt: 1 }}>
+                      <Stack direction="row" spacing={2} sx={{ flexWrap: 'wrap', gap: 2 }}>
+                        <Box 
+                          sx={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            bgcolor: 'rgba(0, 0, 0, 0.05)', 
+                            borderRadius: 5,
+                            px: 2,
+                            py: 0.5,
+                            '&:hover': {
+                              bgcolor: 'rgba(0, 0, 0, 0.1)',
+                            }
+                          }}
+                        >
+                          <CalendarTodayIcon fontSize="small" sx={{ mr: 1 }} />
+                          <Typography variant="body2">{formatFullDate(video.publishedAt)}</Typography>
+                        </Box>
+                        
+                        {video.viewCount && (
+                          <Box 
+                            sx={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              bgcolor: 'rgba(0, 0, 0, 0.05)', 
+                              borderRadius: 5,
+                              px: 2,
+                              py: 0.5,
+                              '&:hover': {
+                                bgcolor: 'rgba(0, 0, 0, 0.1)',
+                              }
+                            }}
+                          >
+                            <VisibilityIcon fontSize="small" sx={{ mr: 1 }} />
+                            <Typography variant="body2">{formatNumber(video.viewCount)}</Typography>
+                          </Box>
+                        )}
+                        
+                        {video.likeCount && (
+                          <Box 
+                            sx={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              bgcolor: 'rgba(0, 0, 0, 0.05)', 
+                              borderRadius: 5,
+                              px: 2,
+                              py: 0.5,
+                              '&:hover': {
+                                bgcolor: 'rgba(0, 0, 0, 0.1)',
+                              }
+                            }}
+                          >
+                            <ThumbUpIcon fontSize="small" sx={{ mr: 1 }} />
+                            <Typography variant="body2">{formatNumber(video.likeCount)}</Typography>
+                          </Box>
+                        )}
+                      </Stack>
+                    </Box>
+                  }
+                />
+              </ListItem>
+            </React.Fragment>
+          ))}
+        </List>
+      </Paper>
+    );
+  }
+
+  // Render videos in grid view mode (default)
   return (
     <Grid container spacing={3}>
       {videos.map((video) => (
@@ -161,24 +367,49 @@ export default function ChannelVideos({ videos }: ChannelVideosProps) {
                 </IconButton>
               </Box>
               
+              {/* Added publish date */}
+              <Typography variant="caption" color="text.secondary" sx={{ mb: 1 }}>
+                {formatPublishDate(video.publishedAt)}
+              </Typography>
+              
               <Box sx={{ mt: 'auto', pt: 1 }}>
-                <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
+                <Stack direction="row" spacing={2} sx={{ flexWrap: 'wrap', gap: 2 }}>
                   {video.viewCount && (
-                    <Chip
-                      icon={<VisibilityIcon fontSize="small" />}
-                      label={formatNumber(video.viewCount)}
-                      size="small"
-                      variant="outlined"
-                    />
+                    <Box 
+                      sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        bgcolor: 'rgba(0, 0, 0, 0.05)', 
+                        borderRadius: 5,
+                        px: 2,
+                        py: 0.5,
+                        '&:hover': {
+                          bgcolor: 'rgba(0, 0, 0, 0.1)',
+                        }
+                      }}
+                    >
+                      <VisibilityIcon fontSize="small" sx={{ mr: 1 }} />
+                      <Typography variant="body2">{formatNumber(video.viewCount)}</Typography>
+                    </Box>
                   )}
                   
                   {video.likeCount && (
-                    <Chip
-                      icon={<ThumbUpIcon fontSize="small" />}
-                      label={formatNumber(video.likeCount)}
-                      size="small"
-                      variant="outlined"
-                    />
+                    <Box 
+                      sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        bgcolor: 'rgba(0, 0, 0, 0.05)', 
+                        borderRadius: 5,
+                        px: 2,
+                        py: 0.5,
+                        '&:hover': {
+                          bgcolor: 'rgba(0, 0, 0, 0.1)',
+                        }
+                      }}
+                    >
+                      <ThumbUpIcon fontSize="small" sx={{ mr: 1 }} />
+                      <Typography variant="body2">{formatNumber(video.likeCount)}</Typography>
+                    </Box>
                   )}
                 </Stack>
               </Box>

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Box, Container, Typography, Grid, Card, CardMedia, CardContent, TextField, Button, InputAdornment, ToggleButtonGroup, ToggleButton, Avatar, Divider } from '@mui/material';
+import { Box, Container, Typography, Grid, Card, CardMedia, CardContent, TextField, Button, InputAdornment, ToggleButtonGroup, ToggleButton, Avatar } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import VideoLibraryIcon from '@mui/icons-material/VideoLibrary';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
@@ -22,7 +22,21 @@ export default function SearchPage() {
   
   const [searchQuery, setSearchQuery] = React.useState(query);
   const [searchType, setSearchType] = React.useState(type === 'channel' ? 'channel' : 'video');
-  const [searchResults, setSearchResults] = React.useState<any[]>([]);
+  const [searchResults, setSearchResults] = React.useState<{
+    id: string;
+    title: string;
+    description?: string;
+    thumbnail: string;
+    publishedAt?: string;
+    channelId?: string;
+    channelTitle?: string;
+    type?: string;
+    viewCount?: number;
+    subscriberCount?: number;
+    videoCount?: number;
+    duration?: number;
+    durationFormatted?: string;
+  }[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   
@@ -75,14 +89,21 @@ export default function SearchPage() {
     }
   };
   
-  const handleBookmarkToggle = (item: any) => {
+  const handleBookmarkToggle = (item: {
+    id: string;
+    title: string;
+    thumbnail: string;
+    type?: string;
+    channelId?: string;
+    channelTitle?: string;
+  }) => {
     const bookmarkItem = {
       id: item.id,
       title: item.title,
       thumbnail: item.thumbnail,
-      type: item.type || 'video',
-      channelId: item.channelId,
-      channelTitle: item.channelTitle,
+      type: (item.type || 'video') as 'video' | 'channel',
+      channelId: item.channelId || '',
+      channelTitle: item.channelTitle || '',
     };
     
     if (isBookmarked(item.id)) {
@@ -205,7 +226,19 @@ export default function SearchPage() {
               </Box>
             ) : searchResults.length > 0 ? (
               <Grid container spacing={3}>
-                {searchResults.map((result: any) => (
+                {searchResults.map((result: {
+                  id: string;
+                  title: string;
+                  thumbnail: string;
+                  publishedAt?: string;
+                  channelId?: string;
+                  channelTitle?: string;
+                  description?: string;
+                  viewCount?: number;
+                  duration?: number;
+                  durationFormatted?: string;
+                  type?: string;
+                }) => (
                   <Grid item xs={12} key={result.id}>
                     {result.type === 'channel' || type === 'channel' ? (
                       // Channel Card
@@ -265,12 +298,38 @@ export default function SearchPage() {
                             </Button>
                           </Box>
                           <Typography variant="caption" color="text.secondary" sx={{ mb: 1 }}>
-                            Channel • {formatDate(result.publishedAt)}
+                            Channel • {result.publishedAt ? formatDate(result.publishedAt) : 'Unknown date'}
                           </Typography>
-                          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                            {result.description?.length > 200 
-                              ? `${result.description.substring(0, 200)}...` 
-                              : result.description}
+                          <Typography 
+                            variant="body2" 
+                            color="text.secondary"
+                            component={Link}
+                            href={`/channel/${result.channelId || ''}`}
+                            sx={{ 
+                              mt: 1,
+                              textDecoration: 'none',
+                              '&:hover': {
+                                color: 'primary.main',
+                              },
+                            }}
+                          >
+                            {result.channelTitle || 'Unknown'}
+                          </Typography>
+                          <Typography 
+                            variant="body2" 
+                            color="text.secondary"
+                            sx={{
+                              mb: 1,
+                              display: '-webkit-box',
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: 'vertical',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                            }}
+                          >
+                            {result.description && result.description.length > 0 
+                              ? result.description 
+                              : 'No description available'}
                           </Typography>
                           <Box sx={{ mt: 'auto' }}>
                             <Button 
@@ -358,7 +417,7 @@ export default function SearchPage() {
                             {result.channelTitle}
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
-                            {formatDate(result.publishedAt)}
+                            {result.publishedAt ? formatDate(result.publishedAt) : 'Unknown date'}
                           </Typography>
                           <Box sx={{ mt: 'auto', pt: 2 }}>
                             <Button 

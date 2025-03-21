@@ -2,7 +2,6 @@
  * Pure functions for fetching and processing YouTube video chapters
  */
 import parseYouTubeChapters from 'get-youtube-chapters';
-import https from 'https';
 import { getVideoInfo } from './get-video-info.js';
 
 /**
@@ -42,10 +41,6 @@ async function getChapters(videoId, options = {}) {
 
     // Parse chapters from description
     const parsedChapters = parseYouTubeChapters(description);
-
-    // console.log('Parsed chapters:', parsedChapters.length);
-    console.log(`found ${parsedChapters.length} chapters`)
-    
 
     // Process chapters
     const chapters = [];
@@ -91,8 +86,6 @@ async function getChapters(videoId, options = {}) {
       }
     }
 
-    // console.log(`Chapters for video ${videoId}:`, chapters);
-
     return {
       videoId,
       chapters,
@@ -104,8 +97,6 @@ async function getChapters(videoId, options = {}) {
       }
     };
   } catch (error) {
-    console.error(`Error getting chapters for video ${videoId}:`, error);
-    
     // Return empty chapters on error
     return {
       videoId,

@@ -1,5 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server';
-import axios from 'axios';
+import { callYouTubeApi } from '../../../../services/server/youtube/youtubeApiClient';
+
+// Define YouTube search response type
+interface YouTubeSearchItem {
+  id: {
+    videoId?: string;
+    channelId?: string;
+    playlistId?: string;
+    kind?: string;
+  };
+  snippet: {
+    title: string;
+    description: string;
+    publishedAt: string;
+    channelId: string;
+    channelTitle: string;
+    thumbnails: {
+      high?: {
+        url: string;
+      };
+      default?: {
+        url: string;
+      };
+    };
+  };
+}
+
+interface YouTubeSearchResponse {
+  items: YouTubeSearchItem[];
+  nextPageToken?: string;
+  prevPageToken?: string;
+  pageInfo?: {
+    totalResults: number;
+    resultsPerPage: number;
+  };
+}
 
 /**
  * API route handler for searching YouTube videos
@@ -22,46 +57,24 @@ export async function GET(request: NextRequest) {
       }, { status: 200 });
     }
     
-    // Fetch search results from YouTube API
-    const apiKey = process.env.YOUTUBE_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({
-        success: false,
-        error: {
-          code: 'MISSING_API_KEY',
-          message: 'YouTube API key is not configured'
-        }
-      }, { status: 200 });
+    // Call YouTube API using our unified client
+    const response = await callYouTubeApi<YouTubeSearchResponse>({
+      endpoint: 'search',
+      params: {
+        part: 'snippet',
+        q: query,
+        type,
+        maxResults
+      },
+      enableCaching: true
+    });
+    
+    if (!response.success || !response.data) {
+      return NextResponse.json(response, { status: 200 });
     }
     
-    const response = await axios.get(
-      `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=${type}&maxResults=${maxResults}&key=${apiKey}`
-    );
-    
     // Format response
-    const searchResults = response.data.items.map((item: {
-      id: {
-        videoId?: string;
-        channelId?: string;
-        playlistId?: string;
-        kind?: string;
-      };
-      snippet: {
-        title: string;
-        description: string;
-        publishedAt: string;
-        channelId: string;
-        channelTitle: string;
-        thumbnails: {
-          high?: {
-            url: string;
-          };
-          default?: {
-            url: string;
-          };
-        };
-      };
-    }) => {
+    const searchResults = response.data.items.map((item: YouTubeSearchItem) => {
       const resultType = item.id.kind?.split('#')[1] || '';
       return {
         id: item.id.videoId || item.id.channelId || item.id.playlistId,
@@ -77,7 +90,8 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json({
       success: true,
-      data: searchResults
+      data: searchResults,
+      cached: response.cached
     }, { status: 200 });
     
   } catch (error) {

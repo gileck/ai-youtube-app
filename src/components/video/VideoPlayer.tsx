@@ -14,14 +14,17 @@ export default function VideoPlayer({ videoId, title }: VideoPlayerProps) {
 
   return (
     <Paper 
-      elevation={0} 
+      elevation={2} 
       sx={{ 
         borderRadius: 2,
         overflow: 'hidden',
         position: 'relative',
-        paddingTop: '56.25%', // 16:9 aspect ratio
+        paddingTop: '52.25%', // Slightly reduced height from 16:9 ratio
         width: '100%',
-        bgcolor: 'black'
+        maxWidth: '100%',
+        bgcolor: 'black',
+        mx: 'auto', // Center the player
+        boxShadow: (theme) => theme.shadows[3]
       }}
     >
       <Box

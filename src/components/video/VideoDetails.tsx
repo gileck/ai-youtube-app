@@ -1,13 +1,25 @@
-import React from 'react';
-import { Box, Typography, Avatar, Chip, Divider } from '@mui/material';
+import React, { useState } from 'react';
+import { Box, Typography, Avatar, Divider, Button, Card, CardContent, Link } from '@mui/material';
 import { formatDistanceToNow } from 'date-fns';
 import { YouTubeVideoDetails } from '../../types/shared/youtube';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import ThumbUpOutlinedIcon from '@mui/icons-material/ThumbUpOutlined';
+import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import NextLink from 'next/link';
 
 interface VideoDetailsProps {
   videoData: YouTubeVideoDetails;
 }
 
-export default function VideoDetails({ videoData }: VideoDetailsProps) {
+export const VideoDetails = ({ videoData }: VideoDetailsProps) => {
+  const [expanded, setExpanded] = useState(false);
+
+  const toggleExpanded = () => {
+    setExpanded(!expanded);
+  };
+
   // Pure function to format view count
   const formatViewCount = (count: number): string => {
     if (count >= 1000000) {
@@ -55,15 +67,22 @@ export default function VideoDetails({ videoData }: VideoDetailsProps) {
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
+  // Function to get a preview of the description
+  const getDescriptionPreview = () => {
+    const maxLength = 150;
+    if (videoData.description.length <= maxLength) return videoData.description;
+    return videoData.description.substring(0, maxLength) + '...';
+  };
+
   return (
-    <Box sx={{ mt: 2 }}>
+    <Box>
       {/* Video Title */}
       <Typography variant="h5" component="h1" gutterBottom>
         {videoData.title}
       </Typography>
       
       {/* Channel and Stats */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
           <Avatar 
             src={videoData.channelThumbnail || undefined} 
@@ -72,7 +91,15 @@ export default function VideoDetails({ videoData }: VideoDetailsProps) {
           />
           <Box>
             <Typography variant="subtitle1" component="div">
-              {videoData.channelTitle}
+              <Link 
+                component={NextLink} 
+                href={`/channel/${videoData.channelId}`}
+                underline="hover"
+                color="inherit"
+                sx={{ fontWeight: 'medium' }}
+              >
+                {videoData.channelTitle}
+              </Link>
             </Typography>
             <Typography variant="body2" color="text.secondary">
               {formatPublishDate(videoData.publishedAt)}
@@ -80,31 +107,81 @@ export default function VideoDetails({ videoData }: VideoDetailsProps) {
           </Box>
         </Box>
         
-        <Box sx={{ display: 'flex', gap: 2 }}>
-          <Chip 
-            label={formatViewCount(videoData.viewCount)} 
-            variant="outlined" 
-            size="small"
-          />
-          <Chip 
-            label={`${formatLikeCount(videoData.likeCount)} likes`} 
-            variant="outlined" 
-            size="small"
-          />
-          <Chip 
-            label={formatDuration(videoData.duration)} 
-            variant="outlined" 
-            size="small"
-          />
+        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+          <Box 
+            sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              bgcolor: 'rgba(0, 0, 0, 0.05)', 
+              borderRadius: 5,
+              px: 2,
+              py: 1,
+              '&:hover': {
+                bgcolor: 'rgba(0, 0, 0, 0.1)',
+              }
+            }}
+          >
+            <VisibilityOutlinedIcon fontSize="small" sx={{ mr: 1 }} />
+            <Typography variant="body2">{formatViewCount(videoData.viewCount)}</Typography>
+          </Box>
+          
+          <Box 
+            sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              bgcolor: 'rgba(0, 0, 0, 0.05)', 
+              borderRadius: 5,
+              px: 2,
+              py: 1,
+              '&:hover': {
+                bgcolor: 'rgba(0, 0, 0, 0.1)',
+              }
+            }}
+          >
+            <ThumbUpOutlinedIcon fontSize="small" sx={{ mr: 1 }} />
+            <Typography variant="body2">{formatLikeCount(videoData.likeCount)}</Typography>
+          </Box>
+          
+          <Box 
+            sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              bgcolor: 'rgba(0, 0, 0, 0.05)', 
+              borderRadius: 5,
+              px: 2,
+              py: 1,
+              '&:hover': {
+                bgcolor: 'rgba(0, 0, 0, 0.1)',
+              }
+            }}
+          >
+            <AccessTimeIcon fontSize="small" sx={{ mr: 1 }} />
+            <Typography variant="body2">{formatDuration(videoData.duration)}</Typography>
+          </Box>
         </Box>
       </Box>
       
       <Divider sx={{ my: 2 }} />
       
       {/* Description */}
-      <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
-        {videoData.description}
-      </Typography>
+      <Card variant="outlined" sx={{ bgcolor: 'background.paper', mb: 2 }}>
+        <CardContent>
+          <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+            {expanded ? videoData.description : getDescriptionPreview()}
+          </Typography>
+          
+          {videoData.description.length > 150 && (
+            <Button 
+              onClick={toggleExpanded}
+              endIcon={expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+              sx={{ mt: 2, textTransform: 'none' }}
+              color="primary"
+            >
+              {expanded ? 'Show less' : 'Show more'}
+            </Button>
+          )}
+        </CardContent>
+      </Card>
     </Box>
   );
 }

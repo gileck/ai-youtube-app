@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
     );
     
     // Get channel IDs from search results
-    const channelIds = response.data.items.map((item: any) => item.id.channelId).join(',');
+    const channelIds = response.data.items.map((item: { id: { channelId: string } }) => item.id.channelId).join(',');
     
     // Fetch detailed channel information
     const channelResponse = await axios.get(
@@ -52,7 +52,30 @@ export async function GET(request: NextRequest) {
     );
     
     // Format response
-    let channelResults = channelResponse.data.items.map((channel: any) => {
+    let channelResults = channelResponse.data.items.map((channel: { 
+      id: string; 
+      snippet: { 
+        title: string; 
+        description: string; 
+        publishedAt: string; 
+        thumbnails: { 
+          high?: { url: string }; 
+          medium?: { url: string }; 
+          default?: { url: string }; 
+        }; 
+        country?: string; 
+      }; 
+      statistics?: { 
+        subscriberCount?: string; 
+        videoCount?: string; 
+        viewCount?: string; 
+      }; 
+      brandingSettings?: { 
+        image?: { 
+          bannerExternalUrl?: string 
+        } 
+      }; 
+    }) => {
       const snippet = channel.snippet;
       const statistics = channel.statistics;
       const branding = channel.brandingSettings;

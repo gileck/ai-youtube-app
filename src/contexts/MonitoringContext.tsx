@@ -3,6 +3,30 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { AICallMetrics, AIUsageSummary } from '../types/shared/monitoring';
 
+// Define types for cache and YouTube metrics
+interface CacheStats {
+  totalItems: number;
+  totalSize: number;
+  hitRate: number;
+  items: Record<string, { size: number; timestamp: number }>;
+}
+
+interface YouTubeMetric {
+  endpoint: string;
+  timestamp: number;
+  duration: number;
+  status: number;
+  cached: boolean;
+  params: Record<string, string>;
+}
+
+interface YouTubeSummary {
+  totalCalls: number;
+  cachedCalls: number;
+  averageResponseTime: number;
+  callsByEndpoint: Record<string, number>;
+}
+
 // Define the context type
 interface MonitoringContextType {
   calls: AICallMetrics[];
@@ -12,6 +36,10 @@ interface MonitoringContextType {
   refreshData: () => Promise<void>;
   trackCall: (call: Omit<AICallMetrics, 'id' | 'timestamp'>) => void;
   clearData: () => void;
+  cacheStats: CacheStats | null; // Cache statistics from server
+  youtubeMetrics: YouTubeMetric[]; // YouTube API metrics
+  youtubeSummary: YouTubeSummary | null; // YouTube API usage summary
+  clearYoutubeMetrics: () => Promise<void>;
 }
 
 // Create empty summary object
@@ -48,96 +76,42 @@ export const MonitoringProvider = ({ children }: MonitoringProviderProps) => {
   const [summary, setSummary] = useState<AIUsageSummary>(createEmptySummary());
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [cacheStats, setCacheStats] = useState<CacheStats | null>(null);
+  const [youtubeMetrics, setYoutubeMetrics] = useState<YouTubeMetric[]>([]);
+  const [youtubeSummary, setYoutubeSummary] = useState<YouTubeSummary | null>(null);
 
-  // Load data from localStorage on mount
-  useEffect(() => {
-    const loadFromStorage = () => {
-      try {
-        const storedCalls = localStorage.getItem('aiCalls');
-        if (storedCalls) {
-          setCalls(JSON.parse(storedCalls));
-        }
-      } catch (error) {
-        console.error('Error loading monitoring data from localStorage:', error);
+  // Function to fetch monitoring data from the server
+  const fetchMonitoringData = async () => {
+    try {
+      const response = await fetch('/api/monitoring');
+      const data = await response.json();
+      
+      if (data.success && data.data) {
+        setCalls(data.data.calls);
+        setSummary(data.data.summary);
+        setCacheStats(data.cache || null);
+        setYoutubeMetrics(data.youtube?.calls || []);
+        setYoutubeSummary(data.youtube?.summary || null);
+      } else {
+        setError(data.error?.message || 'Failed to fetch monitoring data');
       }
-    };
-    
-    loadFromStorage();
-  }, []);
-
-  // Save calls to localStorage when they change
-  useEffect(() => {
-    localStorage.setItem('aiCalls', JSON.stringify(calls));
-    
-    // Calculate summary whenever calls change
-    calculateSummary(calls);
-  }, [calls]);
-
-  // Pure function to calculate summary statistics
-  const calculateSummary = (callData: AICallMetrics[]) => {
-    if (callData.length === 0) {
-      setSummary(createEmptySummary());
-      return;
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'An unknown error occurred');
     }
-
-    // Initialize counters
-    let totalCost = 0;
-    let totalInputTokens = 0;
-    let totalOutputTokens = 0;
-    let totalDuration = 0;
-    let successCount = 0;
-    const costByModel: Record<string, number> = {};
-    const costByAction: Record<string, number> = {};
-    const callsByDate: Record<string, number> = {};
-
-    // Process each call
-    callData.forEach(call => {
-      // Update totals
-      totalCost += call.totalCost;
-      totalInputTokens += call.inputTokens;
-      totalOutputTokens += call.outputTokens;
-      totalDuration += call.duration;
-      if (call.success) successCount++;
-
-      // Update model costs
-      const modelKey = `${call.provider}:${call.model}`;
-      costByModel[modelKey] = (costByModel[modelKey] || 0) + call.totalCost;
-
-      // Update action costs
-      costByAction[call.action] = (costByAction[call.action] || 0) + call.totalCost;
-
-      // Update calls by date (using just the date part of the timestamp)
-      const date = call.timestamp.split('T')[0];
-      callsByDate[date] = (callsByDate[date] || 0) + 1;
-    });
-
-    // Calculate averages and rates
-    const averageResponseTime = totalDuration / callData.length;
-    const successRate = (successCount / callData.length) * 100;
-
-    // Set the summary state
-    setSummary({
-      totalCalls: callData.length,
-      totalCost,
-      totalInputTokens,
-      totalOutputTokens,
-      averageResponseTime,
-      successRate,
-      costByModel,
-      costByAction,
-      callsByDate,
-    });
   };
 
-  // Function to refresh data (could fetch from an API in a real implementation)
+  // Load data on mount
+  useEffect(() => {
+    fetchMonitoringData();
+  }, []);
+
+  // Function to refresh data
   const refreshData = async () => {
     setIsLoading(true);
     setError(null);
     
     try {
-      // In a real app, this would fetch from an API
-      // For now, we'll just recalculate the summary
-      calculateSummary(calls);
+      await fetchMonitoringData();
       setIsLoading(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unknown error occurred');
@@ -145,7 +119,7 @@ export const MonitoringProvider = ({ children }: MonitoringProviderProps) => {
     }
   };
 
-  // Function to track a new API call
+  // Function to track a new API call (client-side only)
   const trackCall = (callData: Omit<AICallMetrics, 'id' | 'timestamp'>) => {
     const newCall: AICallMetrics = {
       ...callData,
@@ -154,13 +128,71 @@ export const MonitoringProvider = ({ children }: MonitoringProviderProps) => {
     };
     
     setCalls(prevCalls => [newCall, ...prevCalls]);
+    
+    // After tracking a call, refresh data from server to get updated metrics
+    setTimeout(() => {
+      refreshData();
+    }, 1000);
   };
 
   // Function to clear all monitoring data
-  const clearData = () => {
-    setCalls([]);
-    setSummary(createEmptySummary());
-    localStorage.removeItem('aiCalls');
+  const clearData = async () => {
+    setIsLoading(true);
+    
+    try {
+      // Clear metrics on the server
+      const response = await fetch('/api/monitoring', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action: 'clear_metrics' }),
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setCalls([]);
+        setSummary(createEmptySummary());
+      } else {
+        setError(data.error?.message || 'Failed to clear monitoring data');
+      }
+      
+      setIsLoading(false);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'An unknown error occurred');
+      setIsLoading(false);
+    }
+  };
+
+  // Function to clear YouTube metrics
+  const clearYoutubeMetrics = async () => {
+    setIsLoading(true);
+    
+    try {
+      // Clear YouTube metrics on the server
+      const response = await fetch('/api/monitoring', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action: 'clear_youtube_metrics' }),
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setYoutubeMetrics([]);
+        setYoutubeSummary(null);
+      } else {
+        setError(data.error?.message || 'Failed to clear YouTube metrics');
+      }
+      
+      setIsLoading(false);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'An unknown error occurred');
+      setIsLoading(false);
+    }
   };
 
   // Context value
@@ -172,6 +204,10 @@ export const MonitoringProvider = ({ children }: MonitoringProviderProps) => {
     refreshData,
     trackCall,
     clearData,
+    cacheStats,
+    youtubeMetrics,
+    youtubeSummary,
+    clearYoutubeMetrics,
   };
 
   return (

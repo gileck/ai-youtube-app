@@ -17,12 +17,12 @@ interface VideoViewTrackerProps {
 /**
  * Component that tracks video views and adds them to history
  */
-export const VideoViewTracker: React.FC<VideoViewTrackerProps> = ({ 
-  videoData, 
-  children 
+export const VideoViewTracker: React.FC<VideoViewTrackerProps> = ({
+  videoData,
+  children
 }) => {
   const { addToHistory } = useHistory();
-  
+
   useEffect(() => {
     if (videoData?.id) {
       // Add to viewed history when component mounts
@@ -35,8 +35,8 @@ export const VideoViewTracker: React.FC<VideoViewTrackerProps> = ({
         channelTitle: videoData.channelTitle,
       });
     }
-  }, [videoData?.id, videoData]);
-  
+  }, [videoData?.id, videoData,]);
+
   return <>{children}</>;
 };
 

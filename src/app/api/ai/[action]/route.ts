@@ -3,7 +3,8 @@ import { fetchTranscript, TranscriptItem } from '../../../../services/server/you
 import { fetchChapters } from '../../../../services/server/youtube/chaptersService';
 import { combineTranscriptAndChapters } from '../../../../services/server/content/contentMappingService';
 import { createAIActionProcessor } from '../../../../services/server/ai/processorFactory';
-import { AIActionParams } from '../../../../types/shared/ai';
+import { AIActionParams } from '../../../../services/server/ai/types';
+import { isValidActionType } from '../../../../services/server/ai/aiActions/constants';
 
 /**
  * API route handler for AI actions
@@ -17,6 +18,17 @@ export async function POST(
     // Get action type from route parameter
     const { action } = await context.params;
     
+    // Validate action type
+    if (!isValidActionType(action)) {
+      return NextResponse.json({
+        success: false,
+        error: {
+          code: 'INVALID_ACTION',
+          message: `Invalid action: ${action}`
+        }
+      }, { status: 200 });
+    }
+    
     // Parse request body
     const body = await request.json();
     const { 
@@ -24,6 +36,7 @@ export async function POST(
       model, 
       costApprovalThreshold,
       approved = false,
+      skipCache = false,
       ...actionParams
     } = body;
     
@@ -54,12 +67,12 @@ export async function POST(
       return NextResponse.json({
         success: false,
         error: {
-          code: 'INVALID_ACTION',
-          message: `Invalid action: ${action}`
+          code: 'PROCESSOR_NOT_FOUND',
+          message: `Processor not found for action: ${action}`
         }
       }, { status: 200 });
     }
-    
+
     // Fetch transcript and chapters in parallel
     const [rawTranscript, chapters] = await Promise.all([
       fetchTranscript(videoId),
@@ -89,7 +102,7 @@ export async function POST(
     
     // Create typed action parameters
     const typedParams: AIActionParams = {
-      type: action as 'summary' | 'question' | 'keypoints' | 'sentiment',
+      type: action,
       ...actionParams
     };
     
@@ -117,7 +130,8 @@ export async function POST(
       fullTranscript,
       chapterContents,
       model,
-      typedParams
+      typedParams,
+      { skipCache }
     );
     
     // Return successful response with result

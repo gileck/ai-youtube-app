@@ -1,4 +1,4 @@
-import { AIActionParams, AIActionResponse } from '../../types/shared/ai';
+import { AIActionParams, AIActionResponse } from './ai/types';
 
 interface ApiClientOptions {
   onApiCall: () => void;
@@ -67,6 +67,7 @@ export class ApiClient {
     model: string; 
     costApprovalThreshold: number;
     approved?: boolean;
+    skipCache?: boolean;
     params?: AIActionParams;
   }): Promise<AIActionResponse> {
     this.options.onApiCall();
@@ -90,6 +91,7 @@ export class ApiClient {
         model: params.model,
         costApprovalThreshold: params.costApprovalThreshold,
         approved: params.approved,
+        skipCache: params.skipCache,
         ...(params.params && params.params.type === 'question' && { question: params.params.question }),
         ...(params.params && params.params.type === 'summary' && { maxLength: params.params.maxLength })
       })

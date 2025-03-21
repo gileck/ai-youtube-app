@@ -16,6 +16,7 @@ export interface AICallMetrics {
   duration: number; // in milliseconds
   success: boolean;
   error?: string;
+  isCached?: boolean; // Whether this call used a cached response
 }
 
 export interface AIUsageSummary {

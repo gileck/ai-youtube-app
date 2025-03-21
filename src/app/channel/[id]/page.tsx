@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { 
   Box, 
   Container, 
@@ -17,13 +17,13 @@ import {
   Select,
   MenuItem,
   SelectChangeEvent,
-  Grid,
   Divider
 } from '@mui/material';
 import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder';
 import BookmarkIcon from '@mui/icons-material/Bookmark';
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import SortIcon from '@mui/icons-material/Sort';
+import GridViewIcon from '@mui/icons-material/GridView';
+import ViewListIcon from '@mui/icons-material/ViewList';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import AppLayout from '../../../components/layout/AppLayout';
 import ChannelVideos from '../../../components/channel/ChannelVideos';
@@ -41,6 +41,7 @@ export default function ChannelPage() {
   // Get filter parameters from URL or use defaults
   const sortBy = searchParams?.get('sortBy') || 'date';
   const durationFilter = searchParams?.get('duration') || 'all';
+  const viewMode = searchParams?.get('view') || 'grid';
   
   // Map duration filter to actual min/max duration in seconds
   const getDurationValues = (filter: string): { min: number, max: number } => {
@@ -58,8 +59,33 @@ export default function ChannelPage() {
   
   const { min: minDuration, max: maxDuration } = getDurationValues(durationFilter);
   
-  const [channelData, setChannelData] = useState<any>(null);
-  const [channelVideos, setChannelVideos] = useState<any[]>([]);
+  const [channelData, setChannelData] = useState<{
+    id: string;
+    title: string;
+    description: string;
+    publishedAt: string;
+    thumbnail: string;
+    bannerUrl: string | null;
+    subscriberCount: number;
+    videoCount: number;
+    viewCount: number;
+    country: string | null;
+    type: string;
+  } | null>(null);
+  const [channelVideos, setChannelVideos] = useState<{
+    id: string;
+    title: string;
+    description: string;
+    publishedAt: string;
+    channelId: string;
+    channelTitle: string;
+    thumbnail: string;
+    type: string;
+    duration: number;
+    durationFormatted: string;
+    viewCount: number;
+    likeCount: number;
+  }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -69,26 +95,33 @@ export default function ChannelPage() {
   const { isBookmarked, addToBookmarks, removeFromBookmarks } = useHistory();
   
   // Update URL when filters change
-  const updateFilters = (newSortBy: string, newDuration: string) => {
+  const updateFilters = (newSortBy: string, newDuration: string, newViewMode: string) => {
     const params = new URLSearchParams();
     if (newSortBy) params.set('sortBy', newSortBy);
     if (newDuration) params.set('duration', newDuration);
+    if (newViewMode) params.set('view', newViewMode);
     router.push(`/channel/${channelId}?${params.toString()}`);
   };
   
   // Handle filter changes
   const handleSortChange = (event: SelectChangeEvent) => {
-    updateFilters(event.target.value, durationFilter);
+    updateFilters(event.target.value, durationFilter, viewMode);
   };
   
   const handleDurationChange = (_event: React.MouseEvent<HTMLElement>, newDuration: string) => {
     if (newDuration !== null) {
-      updateFilters(sortBy, newDuration);
+      updateFilters(sortBy, newDuration, viewMode);
+    }
+  };
+
+  const handleViewModeChange = (_event: React.MouseEvent<HTMLElement>, newViewMode: string) => {
+    if (newViewMode !== null) {
+      updateFilters(sortBy, durationFilter, newViewMode);
     }
   };
   
   // Fetch videos with the current filters
-  const fetchVideos = async (pageToken: string | null = null, append: boolean = false) => {
+  const fetchVideos = useCallback(async (pageToken: string | null = null, append: boolean = false) => {
     if (!channelId) return;
     
     if (append) {
@@ -130,7 +163,7 @@ export default function ChannelPage() {
       setIsLoading(false);
       setIsLoadingMore(false);
     }
-  };
+  }, [channelId, sortBy, minDuration, maxDuration]);
   
   // Fetch channel data
   useEffect(() => {
@@ -163,7 +196,7 @@ export default function ChannelPage() {
     if (channelId) {
       fetchVideos(null, false);
     }
-  }, [channelId, sortBy, minDuration, maxDuration]);
+  }, [channelId, sortBy, minDuration, maxDuration, fetchVideos]);
   
   const handleLoadMore = () => {
     if (nextPageToken) {
@@ -223,160 +256,150 @@ export default function ChannelPage() {
         <Container maxWidth="lg">
           <Box sx={{ py: 4 }}>
             {/* Channel Header */}
-            <Box sx={{ 
-              display: 'flex', 
-              flexDirection: { xs: 'column', md: 'row' }, 
-              alignItems: { xs: 'center', md: 'flex-start' },
-              gap: 3,
-              mb: 4
-            }}>
-              {/* Channel Avatar */}
-              <Avatar
-                src={channelData.thumbnail}
-                alt={channelData.title}
-                sx={{
-                  width: { xs: 120, md: 150 },
-                  height: { xs: 120, md: 150 },
-                  border: '4px solid #f0f0f0',
-                }}
-              />
-              
-              {/* Channel Info */}
-              <Box sx={{ flex: 1 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                  <Typography variant="h4" component="h1">
-                    {channelData.title}
-                  </Typography>
-                  <IconButton 
-                    onClick={handleBookmarkToggle}
-                    color={isBookmarked(channelData.id) ? 'primary' : 'inherit'}
-                    aria-label={isBookmarked(channelData.id) ? 'Remove from bookmarks' : 'Add to bookmarks'}
-                  >
-                    {isBookmarked(channelData.id) ? <BookmarkIcon /> : <BookmarkBorderIcon />}
-                  </IconButton>
-                </Box>
-                
-                {/* Channel Stats */}
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
-                  <Chip 
-                    label={`${formatNumber(channelData.subscriberCount)} subscribers`} 
-                    variant="outlined" 
-                  />
-                  <Chip 
-                    label={`${formatNumber(channelData.videoCount)} videos`} 
-                    variant="outlined" 
-                  />
-                  <Chip 
-                    label={`${formatNumber(channelData.viewCount)} views`} 
-                    variant="outlined" 
-                  />
-                  {channelData.country && (
+            <Box sx={{ mb: 4 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <Avatar 
+                  src={channelData.thumbnail} 
+                  alt={channelData.title}
+                  sx={{ width: 80, height: 80, mr: 2 }}
+                />
+                <Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Typography variant="h4" component="h1">
+                      {channelData.title}
+                    </Typography>
+                    <IconButton 
+                      onClick={handleBookmarkToggle} 
+                      sx={{ ml: 1 }}
+                      aria-label={isBookmarked(channelId) ? "Remove from bookmarks" : "Add to bookmarks"}
+                    >
+                      {isBookmarked(channelId) ? (
+                        <BookmarkIcon color="primary" />
+                      ) : (
+                        <BookmarkBorderIcon />
+                      )}
+                    </IconButton>
+                  </Box>
+                  <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
                     <Chip 
-                      label={channelData.country} 
+                      label={`${formatNumber(channelData.subscriberCount)} subscribers`} 
                       variant="outlined" 
                     />
-                  )}
+                    <Chip 
+                      label={`${formatNumber(channelData.videoCount)} videos`} 
+                      variant="outlined" 
+                    />
+                    <Chip 
+                      label={`${formatNumber(channelData.viewCount)} views`} 
+                      variant="outlined" 
+                    />
+                  </Box>
                 </Box>
-                
-                {/* Channel Description */}
-                <Typography variant="body1" sx={{ mb: 3 }}>
+              </Box>
+              
+              {channelData.description && (
+                <Typography variant="body1" sx={{ mt: 2, mb: 3 }}>
                   {channelData.description.length > 300
                     ? `${channelData.description.substring(0, 300)}...`
                     : channelData.description}
                 </Typography>
-              </Box>
+              )}
+              
+              <Divider sx={{ mb: 3 }} />
             </Box>
             
-            {/* Video Filters */}
-            <Grid container spacing={2} sx={{ mb: 3 }}>
-              <Grid item xs={12} sm={6} md={4}>
-                <FormControl fullWidth size="small">
-                  <InputLabel id="sort-by-label">Sort By</InputLabel>
+            {/* Filters */}
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+                <FormControl size="small" sx={{ minWidth: 150 }}>
+                  <InputLabel id="sort-select-label">Sort By</InputLabel>
                   <Select
-                    labelId="sort-by-label"
-                    id="sort-by"
+                    labelId="sort-select-label"
+                    id="sort-select"
                     value={sortBy}
                     label="Sort By"
                     onChange={handleSortChange}
                     startAdornment={<SortIcon sx={{ mr: 1 }} />}
                   >
-                    <MenuItem value="date">Latest</MenuItem>
-                    <MenuItem value="viewCount">Most Popular</MenuItem>
+                    <MenuItem value="date">Date (newest)</MenuItem>
+                    <MenuItem value="viewCount">View Count</MenuItem>
+                    <MenuItem value="rating">Rating</MenuItem>
                   </Select>
                 </FormControl>
-              </Grid>
-              
-              <Grid item xs={12} sm={6} md={8}>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <AccessTimeIcon sx={{ mr: 1, color: 'text.secondary' }} />
-                  <Typography variant="body2" color="text.secondary" sx={{ mr: 2 }}>
-                    Duration:
-                  </Typography>
-                  <ToggleButtonGroup
-                    value={durationFilter}
-                    exclusive
-                    onChange={handleDurationChange}
-                    aria-label="video duration filter"
-                    size="small"
-                  >
-                    <ToggleButton value="all" aria-label="all videos">
-                      All
-                    </ToggleButton>
-                    <ToggleButton value="10plus" aria-label="10+ minute videos">
-                      10+ min
-                    </ToggleButton>
-                    <ToggleButton value="30plus" aria-label="30+ minute videos">
-                      30+ min
-                    </ToggleButton>
-                    <ToggleButton value="60plus" aria-label="60+ minute videos">
-                      60+ min
-                    </ToggleButton>
-                  </ToggleButtonGroup>
-                </Box>
-              </Grid>
-            </Grid>
-            
-            <Divider sx={{ mb: 3 }} />
-            
-            {/* Channel Videos */}
-            <Box>
-              <Typography variant="h5" component="h2" gutterBottom>
-                Videos
-              </Typography>
-              
-              {isLoading && channelVideos.length === 0 ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-                  <CircularProgress />
-                </Box>
-              ) : (
-                <>
-                  <ChannelVideos videos={channelVideos} />
-                  
-                  {/* Load More Button */}
-                  {hasMore && (
-                    <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-                      <Button 
-                        variant="outlined" 
-                        onClick={handleLoadMore}
-                        disabled={isLoadingMore}
-                        startIcon={isLoadingMore ? <CircularProgress size={20} /> : null}
-                      >
-                        {isLoadingMore ? 'Loading...' : 'Load More Videos'}
-                      </Button>
-                    </Box>
-                  )}
-                  
-                  {/* No Videos Message */}
-                  {channelVideos.length === 0 && !isLoading && (
-                    <Box sx={{ textAlign: 'center', py: 4 }}>
-                      <Typography variant="body1" color="text.secondary">
-                        No videos found with the selected filters.
-                      </Typography>
-                    </Box>
-                  )}
-                </>
-              )}
+                
+                <ToggleButtonGroup
+                  value={durationFilter}
+                  exclusive
+                  onChange={handleDurationChange}
+                  aria-label="duration filter"
+                  size="small"
+                >
+                  <ToggleButton value="all" aria-label="all durations">
+                    All
+                  </ToggleButton>
+                  <ToggleButton value="10plus" aria-label="10+ minutes">
+                    10+ min
+                  </ToggleButton>
+                  <ToggleButton value="30plus" aria-label="30+ minutes">
+                    30+ min
+                  </ToggleButton>
+                  <ToggleButton value="60plus" aria-label="60+ minutes">
+                    1+ hour
+                  </ToggleButton>
+                </ToggleButtonGroup>
+              </Box>
+
+              {/* View Mode Toggle */}
+              <ToggleButtonGroup
+                value={viewMode}
+                exclusive
+                onChange={handleViewModeChange}
+                aria-label="view mode"
+                size="small"
+              >
+                <ToggleButton value="grid" aria-label="grid view">
+                  <GridViewIcon />
+                </ToggleButton>
+                <ToggleButton value="list" aria-label="list view">
+                  <ViewListIcon />
+                </ToggleButton>
+              </ToggleButtonGroup>
             </Box>
+            
+            {/* Loading State */}
+            {isLoading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+                <CircularProgress />
+              </Box>
+            ) : (
+              <>
+                {/* Videos Grid */}
+                <ChannelVideos videos={channelVideos} viewMode={viewMode as 'grid' | 'list'} />
+                
+                {/* Load More Button */}
+                {hasMore && (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+                    <Button 
+                      variant="outlined" 
+                      onClick={handleLoadMore}
+                      disabled={isLoadingMore}
+                      startIcon={isLoadingMore ? <CircularProgress size={20} /> : null}
+                    >
+                      {isLoadingMore ? 'Loading...' : 'Load More'}
+                    </Button>
+                  </Box>
+                )}
+                
+                {/* No Videos Message */}
+                {channelVideos.length === 0 && !isLoading && (
+                  <Box sx={{ textAlign: 'center', py: 4 }}>
+                    <Typography variant="body1" color="text.secondary">
+                      No videos found with the selected filters.
+                    </Typography>
+                  </Box>
+                )}
+              </>
+            )}
           </Box>
         </Container>
       </ChannelViewTracker>
