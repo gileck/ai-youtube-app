@@ -7,8 +7,17 @@ import { MonitoringProvider } from "../contexts/MonitoringContext";
 import { SettingsProvider } from "../contexts/SettingsContext";
 import { ApiProvider } from "../contexts/ApiContext";
 import { ThemeProvider, createTheme } from "@mui/material";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Script from "next/script";
+import dynamic from "next/dynamic";
+
+const PWAInstallPrompt = dynamic(() => import('../components/PWAInstallPrompt'), {
+  ssr: false
+});
+
+const SplashScreen = dynamic(() => import('../components/SplashScreen'), {
+  ssr: false
+});
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -140,6 +149,15 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const [isPWA, setIsPWA] = useState(false);
+  
+  useEffect(() => {
+    // Check if the app is running in standalone mode (PWA)
+    if (typeof window !== 'undefined') {
+      setIsPWA(window.matchMedia('(display-mode: standalone)').matches);
+    }
+  }, []);
+
   return (
     <html lang="en">
       <head>
@@ -156,7 +174,9 @@ export default function RootLayout({
             <ApiProvider>
               <HistoryProvider>
                 <MonitoringProvider>
+                  {isPWA && <SplashScreen />}
                   {children}
+                  <PWAInstallPrompt />
                 </MonitoringProvider>
               </HistoryProvider>
             </ApiProvider>
