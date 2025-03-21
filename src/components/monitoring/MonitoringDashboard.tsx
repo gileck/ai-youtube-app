@@ -5,56 +5,46 @@ import {
   Box, 
   Typography, 
   Paper, 
-  Grid, 
+  Tabs, 
+  Tab, 
+  Button, 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableContainer, 
+  TableHead, 
+  TableRow, 
   Card, 
   CardContent, 
-  Divider,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Button,
-  Chip,
-  IconButton,
-  Tabs,
-  Tab,
+  Grid, 
+  Chip, 
+  Divider, 
+  IconButton, 
+  Tooltip,
+  CircularProgress,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  Alert,
-  CircularProgress,
-  Tooltip
+  Alert
 } from '@mui/material';
-import RefreshIcon from '@mui/icons-material/Refresh';
 import DeleteIcon from '@mui/icons-material/Delete';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import InfoIcon from '@mui/icons-material/Info';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import { formatDate as formatDateUtil } from '../../utils/formatters';
+import { useMonitoring } from '../../contexts/MonitoringContext';
 import { useApiClient } from '../../contexts/ApiContext';
 import { useSettings } from '../../contexts/SettingsContext';
-import { useMonitoring } from '../../contexts/MonitoringContext';
-import { formatDate } from '../../utils/formatters';
 
 // Helper function to format currency
 const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 4,
-    maximumFractionDigits: 4
-  }).format(value);
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
 };
 
 // Helper function to format large numbers
 const formatNumber = (value: number) => {
   return new Intl.NumberFormat('en-US').format(value);
-};
-
-// Helper function to format duration in ms to readable format
-const formatDuration = (ms: number) => {
-  if (ms < 1000) return `${ms}ms`;
-  return `${(ms / 1000).toFixed(2)}s`;
 };
 
 // Helper function to format date from timestamp
@@ -73,6 +63,7 @@ interface CacheEntry {
   hits: number;
 }
 
+// Extend the YouTubeMetric type to include additional properties needed
 interface YouTubeMetricExtended {
   id?: string;
   endpoint: string;
@@ -83,6 +74,30 @@ interface YouTubeMetricExtended {
   params: Record<string, string>;
   quotaCost?: number;
   error?: string;
+}
+
+// Extend the YouTubeSummary type to include additional properties
+interface YouTubeSummaryExtended {
+  totalCalls: number;
+  cachedCalls: number;
+  averageResponseTime: number;
+  callsByEndpoint: Record<string, number>;
+  totalQuotaCost?: number;
+  cacheHits?: number;
+  quotaByEndpoint?: Record<string, number>;
+  dailyQuotaUsage?: Record<string, number>;
+}
+
+// Extend the CacheStats type to include additional properties
+interface CacheStatsExtended {
+  totalItems: number;
+  totalSize: number;
+  hitRate: number;
+  items: Record<string, { size: number; timestamp: number }>;
+  totalEntries?: number;
+  totalHits?: number;
+  entries?: CacheEntry[];
+  entriesByAction?: Record<string, number>;
 }
 
 export default function MonitoringDashboard() {
@@ -107,15 +122,22 @@ export default function MonitoringDashboard() {
   const [confirmClearCacheOpen, setConfirmClearCacheOpen] = useState(false);
   const [confirmClearYoutubeOpen, setConfirmClearYoutubeOpen] = useState(false);
   
-  // Calculate cache efficiency from server stats
-  const cacheEfficiency = cacheStats && cacheStats.totalHits > 0 && cacheStats.totalEntries > 0
-    ? Math.round((cacheStats.totalHits / (cacheStats.totalHits + summary.totalCalls)) * 100)
-    : 0;
-  
-  // Calculate estimated savings from cache
-  const estimatedSavings = cacheStats && cacheStats.totalHits
-    ? Math.round(cacheStats.totalHits * 0.01 * 10000) / 10000 // Rough estimate of $0.01 saved per cache hit
-    : 0;
+  // Calculate cache efficiency
+  const cacheEfficiency = cacheStats && 
+    (cacheStats as CacheStatsExtended)?.totalHits !== undefined && 
+    (cacheStats as CacheStatsExtended)?.totalEntries !== undefined && 
+    ((cacheStats as CacheStatsExtended)?.totalHits ?? 0) > 0 && 
+    ((cacheStats as CacheStatsExtended)?.totalEntries ?? 0) > 0
+      ? Math.round((((cacheStats as CacheStatsExtended)?.totalHits ?? 0) / 
+          (((cacheStats as CacheStatsExtended)?.totalHits ?? 0) + (summary?.totalCalls ?? 0))) * 100)
+      : 0;
+    
+  // Estimate cost savings from cache hits
+  const estimatedSavings = cacheStats && 
+    (cacheStats as CacheStatsExtended)?.totalHits !== undefined && 
+    ((cacheStats as CacheStatsExtended)?.totalHits ?? 0) > 0
+      ? Math.round(((cacheStats as CacheStatsExtended)?.totalHits ?? 0) * 0.01 * 10000) / 10000 // Rough estimate of $0.01 saved per cache hit
+      : 0;
   
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -246,7 +268,7 @@ export default function MonitoringDashboard() {
                     Total API Calls
                   </Typography>
                   <Typography variant="h4">
-                    {summary.totalCalls}
+                    {summary?.totalCalls}
                   </Typography>
                 </CardContent>
               </Card>
@@ -259,7 +281,7 @@ export default function MonitoringDashboard() {
                     Total AI Cost
                   </Typography>
                   <Typography variant="h4">
-                    {formatCurrency(summary.totalCost)}
+                    {formatCurrency(summary?.totalCost ?? 0)}
                   </Typography>
                 </CardContent>
               </Card>
@@ -272,7 +294,7 @@ export default function MonitoringDashboard() {
                     Total Tokens
                   </Typography>
                   <Typography variant="h4">
-                    {formatNumber(summary.totalInputTokens + summary.totalOutputTokens)}
+                    {formatNumber((summary?.totalInputTokens ?? 0) + (summary?.totalOutputTokens ?? 0))}
                   </Typography>
                 </CardContent>
               </Card>
@@ -285,7 +307,7 @@ export default function MonitoringDashboard() {
                     Avg. Response Time
                   </Typography>
                   <Typography variant="h4">
-                    {formatDuration(summary.averageResponseTime)}
+                    {formatDate(summary?.averageResponseTime ?? 0)}
                   </Typography>
                 </CardContent>
               </Card>
@@ -309,7 +331,7 @@ export default function MonitoringDashboard() {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {Object.entries(summary.costByModel).length > 0 ? (
+                      {summary?.costByModel && Object.entries(summary.costByModel).length > 0 ? (
                         Object.entries(summary.costByModel)
                           .sort(([, a], [, b]) => b - a)
                           .map(([model, cost]) => (
@@ -317,7 +339,7 @@ export default function MonitoringDashboard() {
                               <TableCell>{model}</TableCell>
                               <TableCell align="right">{formatCurrency(cost)}</TableCell>
                               <TableCell align="right">
-                                {summary.totalCost > 0 ? `${((cost / summary.totalCost) * 100).toFixed(1)}%` : '0%'}
+                                {(summary?.totalCost ?? 0) > 0 ? `${((cost / (summary?.totalCost ?? 0)) * 100).toFixed(1)}%` : '0%'}
                               </TableCell>
                             </TableRow>
                           ))
@@ -350,7 +372,7 @@ export default function MonitoringDashboard() {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {Object.entries(summary.costByAction).length > 0 ? (
+                      {summary?.costByAction && Object.entries(summary.costByAction).length > 0 ? (
                         Object.entries(summary.costByAction)
                           .sort(([, a], [, b]) => b - a)
                           .map(([action, cost]) => (
@@ -358,7 +380,7 @@ export default function MonitoringDashboard() {
                               <TableCell>{action}</TableCell>
                               <TableCell align="right">{formatCurrency(cost)}</TableCell>
                               <TableCell align="right">
-                                {summary.totalCost > 0 ? `${((cost / summary.totalCost) * 100).toFixed(1)}%` : '0%'}
+                                {(summary?.totalCost ?? 0) > 0 ? `${((cost / (summary?.totalCost ?? 0)) * 100).toFixed(1)}%` : '0%'}
                               </TableCell>
                             </TableRow>
                           ))
@@ -384,7 +406,7 @@ export default function MonitoringDashboard() {
                     color="error" 
                     startIcon={<DeleteIcon />}
                     onClick={handleClearCacheConfirmOpen}
-                    disabled={!cacheStats || cacheStats.totalEntries === 0}
+                    disabled={!cacheStats || (cacheStats as CacheStatsExtended)?.totalEntries === undefined || (cacheStats as CacheStatsExtended)?.totalEntries === 0}
                   >
                     Clear Cache
                   </Button>
@@ -392,21 +414,21 @@ export default function MonitoringDashboard() {
                 
                 <Divider sx={{ mb: 2 }} />
                 
-                {cacheStats ? (
+                {cacheStats && (cacheStats as CacheStatsExtended)?.totalEntries !== undefined ? (
                   <Grid container spacing={3}>
                     <Grid item xs={12} md={3}>
                       <Typography variant="subtitle1">Total Cached Entries</Typography>
-                      <Typography variant="h5">{cacheStats.totalEntries}</Typography>
+                      <Typography variant="h5">{(cacheStats as CacheStatsExtended)?.totalEntries}</Typography>
                     </Grid>
                     
                     <Grid item xs={12} md={3}>
                       <Typography variant="subtitle1">Total Cache Hits</Typography>
-                      <Typography variant="h5">{cacheStats.totalHits}</Typography>
+                      <Typography variant="h5">{(cacheStats as CacheStatsExtended)?.totalHits}</Typography>
                     </Grid>
                     
                     <Grid item xs={12} md={3}>
                       <Typography variant="subtitle1">Cache Size</Typography>
-                      <Typography variant="h5">{(cacheStats.totalSize / (1024 * 1024)).toFixed(2)} MB</Typography>
+                      <Typography variant="h5">{((cacheStats as CacheStatsExtended)?.totalSize ?? 0) / (1024 * 1024) > 0 ? ((cacheStats as CacheStatsExtended)?.totalSize ?? 0) / (1024 * 1024) : 0} MB</Typography>
                     </Grid>
                     
                     <Grid item xs={12} md={3}>
@@ -414,11 +436,11 @@ export default function MonitoringDashboard() {
                       <Typography variant="h5">{formatCurrency(estimatedSavings)}</Typography>
                     </Grid>
                     
-                    {cacheStats.totalEntries > 0 && (
+                    {(cacheStats as CacheStatsExtended)?.entriesByAction && Object.keys((cacheStats as CacheStatsExtended)?.entriesByAction ?? {}).length > 0 && (
                       <Grid item xs={12}>
                         <Typography variant="subtitle1" sx={{ mt: 2, mb: 1 }}>Cached Entries by Action</Typography>
                         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                          {Object.entries(cacheStats.entriesByAction).map(([action, count]) => (
+                          {Object.entries((cacheStats as CacheStatsExtended)?.entriesByAction ?? {}).map(([action, count]) => (
                             <Chip 
                               key={action}
                               label={`${action}: ${count}`}
@@ -430,11 +452,13 @@ export default function MonitoringDashboard() {
                       </Grid>
                     )}
                     
-                    {cacheStats.entries && cacheStats.entries.length > 0 && (
+                    {cacheStats && 
+                      (cacheStats as CacheStatsExtended)?.entries && 
+                      ((cacheStats as CacheStatsExtended)?.entries?.length ?? 0) > 0 && (
                       <Grid item xs={12}>
                         <Typography variant="subtitle1" sx={{ mt: 2, mb: 1 }}>Recent Cache Entries</Typography>
                         <TableContainer component={Paper} sx={{ maxHeight: 300 }}>
-                          <Table size="small" stickyHeader>
+                          <Table stickyHeader size="small">
                             <TableHead>
                               <TableRow>
                                 <TableCell>Action</TableCell>
@@ -446,13 +470,13 @@ export default function MonitoringDashboard() {
                               </TableRow>
                             </TableHead>
                             <TableBody>
-                              {cacheStats.entries.slice(0, 10).map((entry: CacheEntry) => (
+                              {(cacheStats as CacheStatsExtended)?.entries?.slice(0, 10).map((entry: CacheEntry) => (
                                 <TableRow key={entry.key}>
                                   <TableCell>{entry.action}</TableCell>
                                   <TableCell>{entry.videoId}</TableCell>
                                   <TableCell>{entry.model}</TableCell>
-                                  <TableCell>{formatDate(entry.timestamp)}</TableCell>
-                                  <TableCell>{formatDate(entry.expiresAt)}</TableCell>
+                                  <TableCell>{formatDateUtil(entry.timestamp.toString())}</TableCell>
+                                  <TableCell>{formatDateUtil(entry.expiresAt.toString())}</TableCell>
                                   <TableCell>{entry.hits}</TableCell>
                                 </TableRow>
                               ))}
@@ -534,7 +558,7 @@ export default function MonitoringDashboard() {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {Object.entries(summary.costByModel).length > 0 ? (
+                      {summary?.costByModel && Object.entries(summary.costByModel).length > 0 ? (
                         Object.entries(summary.costByModel)
                           .sort(([, a], [, b]) => b - a)
                           .map(([modelKey, cost]) => {
@@ -593,7 +617,7 @@ export default function MonitoringDashboard() {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {Object.entries(summary.costByAction).length > 0 ? (
+                      {summary?.costByAction && Object.entries(summary.costByAction).length > 0 ? (
                         Object.entries(summary.costByAction)
                           .sort(([, a], [, b]) => b - a)
                           .map(([action, cost]) => {
@@ -611,10 +635,10 @@ export default function MonitoringDashboard() {
                                 <TableCell>{action}</TableCell>
                                 <TableCell align="right">{actionCalls.length}</TableCell>
                                 <TableCell align="right">{formatNumber(totalTokens)}</TableCell>
-                                <TableCell align="right">{formatDuration(avgResponseTime)}</TableCell>
+                                <TableCell align="right">{formatDate(avgResponseTime)}</TableCell>
                                 <TableCell align="right">{formatCurrency(cost)}</TableCell>
                                 <TableCell align="right">
-                                  {summary.totalCost > 0 ? `${((cost / summary.totalCost) * 100).toFixed(1)}%` : '0%'}
+                                  {(summary?.totalCost ?? 0) > 0 ? `${((cost / (summary?.totalCost ?? 0)) * 100).toFixed(1)}%` : '0%'}
                                 </TableCell>
                               </TableRow>
                             );
@@ -645,7 +669,7 @@ export default function MonitoringDashboard() {
                     color="error" 
                     startIcon={<DeleteIcon />}
                     onClick={handleClearCacheConfirmOpen}
-                    disabled={!cacheStats || cacheStats.totalEntries === 0}
+                    disabled={!cacheStats || (cacheStats as CacheStatsExtended)?.totalEntries === undefined || (cacheStats as CacheStatsExtended)?.totalEntries === 0}
                     size="small"
                   >
                     Clear Cache
@@ -660,19 +684,19 @@ export default function MonitoringDashboard() {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {cacheStats ? (
+                      {cacheStats && (cacheStats as CacheStatsExtended)?.totalEntries !== undefined ? (
                         <>
                           <TableRow>
                             <TableCell>Total Cached Entries</TableCell>
-                            <TableCell align="right">{cacheStats.totalEntries}</TableCell>
+                            <TableCell align="right">{(cacheStats as CacheStatsExtended)?.totalEntries}</TableCell>
                           </TableRow>
                           <TableRow>
                             <TableCell>Total Cache Hits</TableCell>
-                            <TableCell align="right">{cacheStats.totalHits}</TableCell>
+                            <TableCell align="right">{(cacheStats as CacheStatsExtended)?.totalHits}</TableCell>
                           </TableRow>
                           <TableRow>
                             <TableCell>Cache Size</TableCell>
-                            <TableCell align="right">{(cacheStats.totalSize / (1024 * 1024)).toFixed(2)} MB</TableCell>
+                            <TableCell align="right">{((cacheStats as CacheStatsExtended)?.totalSize ?? 0) / (1024 * 1024) > 0 ? ((cacheStats as CacheStatsExtended)?.totalSize ?? 0) / (1024 * 1024) : 0} MB</TableCell>
                           </TableRow>
                           <TableRow>
                             <TableCell>Cache Efficiency</TableCell>
@@ -719,7 +743,7 @@ export default function MonitoringDashboard() {
                   <TableBody>
                     {calls.map((call) => (
                       <TableRow key={call.id}>
-                        <TableCell>{formatDate(call.timestamp)}</TableCell>
+                        <TableCell>{formatDateUtil(call.timestamp.toString())}</TableCell>
                         <TableCell>
                           <Tooltip title={call.videoTitle || call.videoId}>
                             <Typography noWrap sx={{ maxWidth: 150 }}>
@@ -731,7 +755,7 @@ export default function MonitoringDashboard() {
                         <TableCell>{call.model}</TableCell>
                         <TableCell align="right">{formatNumber(call.inputTokens + call.outputTokens)}</TableCell>
                         <TableCell align="right">{formatCurrency(call.totalCost)}</TableCell>
-                        <TableCell align="right">{formatDuration(call.duration)}</TableCell>
+                        <TableCell align="right">{formatDate(call.duration)}</TableCell>
                         <TableCell align="center">
                           <Chip 
                             label={call.success ? "Success" : "Failed"} 
@@ -777,7 +801,7 @@ export default function MonitoringDashboard() {
                     color="error" 
                     startIcon={<DeleteIcon />}
                     onClick={handleClearYoutubeConfirmOpen}
-                    disabled={!youtubeSummary || youtubeSummary.totalCalls === 0}
+                    disabled={!youtubeSummary || (youtubeSummary as YouTubeSummaryExtended)?.totalCalls === undefined || (youtubeSummary as YouTubeSummaryExtended)?.totalCalls === 0}
                   >
                     Clear YouTube Metrics
                   </Button>
@@ -785,34 +809,34 @@ export default function MonitoringDashboard() {
                 
                 <Divider sx={{ mb: 2 }} />
                 
-                {youtubeSummary ? (
+                {youtubeSummary && (youtubeSummary as YouTubeSummaryExtended)?.totalCalls !== undefined ? (
                   <Grid container spacing={3}>
                     <Grid item xs={12} md={3}>
                       <Typography variant="subtitle1">Total API Calls</Typography>
-                      <Typography variant="h5">{youtubeSummary.totalCalls}</Typography>
+                      <Typography variant="h5">{(youtubeSummary as YouTubeSummaryExtended)?.totalCalls}</Typography>
                     </Grid>
                     
                     <Grid item xs={12} md={3}>
                       <Typography variant="subtitle1">Total Quota Used</Typography>
-                      <Typography variant="h5">{youtubeSummary.totalQuotaCost}</Typography>
+                      <Typography variant="h5">{(youtubeSummary as YouTubeSummaryExtended)?.totalQuotaCost}</Typography>
                     </Grid>
                     
                     <Grid item xs={12} md={3}>
                       <Typography variant="subtitle1">Cache Hits</Typography>
-                      <Typography variant="h5">{youtubeSummary.cacheHits}</Typography>
+                      <Typography variant="h5">{(youtubeSummary as YouTubeSummaryExtended)?.cacheHits}</Typography>
                     </Grid>
                     
                     <Grid item xs={12} md={3}>
                       <Typography variant="subtitle1">Cache Efficiency</Typography>
                       <Typography variant="h5">
-                        {youtubeSummary.totalCalls > 0 
-                          ? Math.round((youtubeSummary.cacheHits / youtubeSummary.totalCalls) * 100) 
+                        {(youtubeSummary as YouTubeSummaryExtended)?.totalCalls > 0 
+                          ? Math.round(((youtubeSummary as YouTubeSummaryExtended)?.cacheHits ?? 0) / (youtubeSummary as YouTubeSummaryExtended)?.totalCalls) * 100 
                           : 0}%
                       </Typography>
                     </Grid>
                     
                     {/* Quota by Endpoint */}
-                    {Object.keys(youtubeSummary.quotaByEndpoint).length > 0 && (
+                    {youtubeSummary && (youtubeSummary as YouTubeSummaryExtended)?.quotaByEndpoint && Object.keys((youtubeSummary as YouTubeSummaryExtended)?.quotaByEndpoint ?? {}).length > 0 && (
                       <Grid item xs={12}>
                         <Typography variant="subtitle1" sx={{ mt: 2, mb: 1 }}>Quota Usage by Endpoint</Typography>
                         <TableContainer component={Paper}>
@@ -824,7 +848,7 @@ export default function MonitoringDashboard() {
                               </TableRow>
                             </TableHead>
                             <TableBody>
-                              {Object.entries(youtubeSummary.quotaByEndpoint).map(([endpoint, quota]) => (
+                              {Object.entries((youtubeSummary as YouTubeSummaryExtended)?.quotaByEndpoint ?? {}).map(([endpoint, quota]) => (
                                 <TableRow key={endpoint}>
                                   <TableCell>{endpoint}</TableCell>
                                   <TableCell align="right">{Number(quota)}</TableCell>
@@ -837,7 +861,7 @@ export default function MonitoringDashboard() {
                     )}
                     
                     {/* Daily Quota Usage */}
-                    {Object.keys(youtubeSummary.dailyQuotaUsage).length > 0 && (
+                    {youtubeSummary && (youtubeSummary as YouTubeSummaryExtended)?.dailyQuotaUsage && Object.keys((youtubeSummary as YouTubeSummaryExtended)?.dailyQuotaUsage ?? {}).length > 0 && (
                       <Grid item xs={12}>
                         <Typography variant="subtitle1" sx={{ mt: 2, mb: 1 }}>Daily Quota Usage</Typography>
                         <TableContainer component={Paper}>
@@ -849,11 +873,11 @@ export default function MonitoringDashboard() {
                               </TableRow>
                             </TableHead>
                             <TableBody>
-                              {Object.entries(youtubeSummary.dailyQuotaUsage)
+                              {Object.entries((youtubeSummary as YouTubeSummaryExtended)?.dailyQuotaUsage ?? {})
                                 .sort((a, b) => new Date(b[0]).getTime() - new Date(a[0]).getTime())
                                 .map(([date, quota]) => (
                                   <TableRow key={date}>
-                                    <TableCell>{formatDate(date)}</TableCell>
+                                    <TableCell>{formatDateUtil(date)}</TableCell>
                                     <TableCell align="right">{Number(quota)}</TableCell>
                                   </TableRow>
                                 ))
@@ -883,7 +907,7 @@ export default function MonitoringDashboard() {
                             <TableBody>
                               {youtubeMetrics.slice(0, 20).map((call: YouTubeMetricExtended, index) => (
                                 <TableRow key={call.id || index}>
-                                  <TableCell>{formatDate(call.timestamp)}</TableCell>
+                                  <TableCell>{formatDateUtil(call.timestamp.toString())}</TableCell>
                                   <TableCell>{call.endpoint}</TableCell>
                                   <TableCell>
                                     {Object.entries(call.params).map(([key, value]) => (
@@ -1018,12 +1042,12 @@ export default function MonitoringDashboard() {
                 <Grid item xs={12} md={6}>
                   <Typography variant="subtitle2">Timestamp</Typography>
                   <Typography variant="body1" gutterBottom>
-                    {formatDate(selectedCallDetails.timestamp)}
+                    {formatDateUtil(selectedCallDetails.timestamp.toString())}
                   </Typography>
                   
                   <Typography variant="subtitle2">Duration</Typography>
                   <Typography variant="body1" gutterBottom>
-                    {formatDuration(selectedCallDetails.duration)}
+                    {formatDate(selectedCallDetails.duration)}
                   </Typography>
                   
                   <Typography variant="subtitle2">Status</Typography>

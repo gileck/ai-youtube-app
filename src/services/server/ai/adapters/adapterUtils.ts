@@ -32,90 +32,108 @@ export const processWithCaching = async (
       trackAICall({
         videoId: metadata.videoId || 'unknown',
         action: metadata.action || 'unknown',
-        model: metadata.model || cachedResult.model || 'unknown',
-        provider: metadata.provider || cachedResult.provider || 'unknown',
-        inputTokens: cachedResult.usage?.promptTokens || 0,
-        outputTokens: cachedResult.usage?.completionTokens || 0,
+        model: metadata.model || (cachedResult as any).model || 'unknown',
+        provider: metadata.provider || (cachedResult as any).provider || 'unknown',
+        inputTokens: (cachedResult as any).usage?.promptTokens || 0,
+        outputTokens: (cachedResult as any).usage?.completionTokens || 0,
         inputCost: 0, // No cost for cached responses
         outputCost: 0, // No cost for cached responses
         totalCost: 0,  // No cost for cached responses
         duration: 0,   // Negligible duration for cached responses
         success: true,
         isCached: true,
-        videoTitle: cachedResult.videoTitle
+        videoTitle: (cachedResult as any).videoTitle as string | undefined
       });
       
-      // Ensure the response has isCached flag set to true
-      return {
-        ...cachedResult,
-        isCached: true,
+      // Create a properly typed response from the cached result
+      const typedResponse: AIModelResponse & { isCached: boolean } = {
+        text: (cachedResult as any).text || '',
+        usage: {
+          promptTokens: (cachedResult as any).usage?.promptTokens || 0,
+          completionTokens: (cachedResult as any).usage?.completionTokens || 0,
+          totalTokens: (cachedResult as any).usage?.totalTokens || 0
+        },
         cost: {
-          ...cachedResult.cost,
           inputCost: 0,
           outputCost: 0,
           totalCost: 0
-        }
+        },
+        isCached: true
       };
+      
+      // Add optional properties if they exist in the cached result
+      if ((cachedResult as any).parsedJson) {
+        typedResponse.parsedJson = (cachedResult as any).parsedJson;
+      }
+      
+      if ((cachedResult as any).videoTitle) {
+        typedResponse.videoTitle = (cachedResult as any).videoTitle;
+      }
+      
+      if ((cachedResult as any).model) {
+        typedResponse.model = (cachedResult as any).model;
+      }
+      
+      if ((cachedResult as any).provider) {
+        typedResponse.provider = (cachedResult as any).provider;
+      }
+      
+      return typedResponse;
     }
   }
   
+  // If not cached or caching disabled, make the actual API call
   try {
-    // Make the actual API call
     const result = await actualApiCall();
+    const duration = Date.now() - startTime;
     
-    // Track the API call in metrics
-    if (metadata) {
-      trackAICall({
-        videoId: metadata.videoId || 'unknown',
-        action: metadata.action || 'unknown',
-        model: metadata.model || result.model || 'unknown',
-        provider: metadata.provider || result.provider || 'unknown',
-        inputTokens: result.usage?.promptTokens || 0,
-        outputTokens: result.usage?.completionTokens || 0,
-        inputCost: result.cost?.inputCost || 0,
-        outputCost: result.cost?.outputCost || 0,
-        totalCost: result.cost?.totalCost || 0,
-        duration: Date.now() - startTime,
-        success: true,
-        isCached: false,
-        videoTitle: result.videoTitle
-      });
+    // Track the API call with cost information
+    trackAICall({
+      videoId: metadata.videoId || 'unknown',
+      action: metadata.action || 'unknown',
+      model: metadata.model || result.model || 'unknown',
+      provider: metadata.provider || result.provider || 'unknown',
+      inputTokens: result.usage.promptTokens,
+      outputTokens: result.usage.completionTokens,
+      inputCost: result.cost.inputCost,
+      outputCost: result.cost.outputCost,
+      totalCost: result.cost.totalCost,
+      duration,
+      success: true,
+      isCached: false,
+      videoTitle: result.videoTitle
+    });
+    
+    // Cache the result if caching is enabled
+    if (metadata?.enableCaching) {
+      const cacheTTL = metadata.cacheTTL || 24 * 60 * 60 * 1000; // Default 24 hours
       
-      // Cache the result if caching is enabled
-      if (metadata.enableCaching) {
-        const cacheTTL = metadata.cacheTTL || 24 * 60 * 60 * 1000; // Default 24 hours
-        
-        cacheResponse(cacheKey, result, cacheTTL, {
-          action: metadata.action || 'unknown',
-          videoId: metadata.videoId || 'unknown',
-          model: metadata.model || result.model || 'unknown'
-        });
-      }
-    }
-    
-    // Ensure the response has isCached flag set to false
-    return {
-      ...result,
-      isCached: false
-    };
-  } catch (error) {
-    // Track the failed API call
-    if (metadata) {
-      trackAICall({
-        videoId: metadata.videoId || 'unknown',
+      // Use type assertion to satisfy TypeScript
+      cacheResponse(cacheKey, result as unknown as Record<string, unknown>, cacheTTL, {
         action: metadata.action || 'unknown',
-        model: metadata.model || 'unknown',
-        provider: metadata.provider || 'unknown',
-        inputTokens: 0,
-        outputTokens: 0,
-        inputCost: 0,
-        outputCost: 0,
-        totalCost: 0,
-        duration: Date.now() - startTime,
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        videoId: metadata.videoId || 'unknown',
+        model: metadata.model || 'unknown'
       });
     }
+    
+    return result;
+  } catch (error) {
+    // Track failed API calls
+    trackAICall({
+      videoId: metadata.videoId || 'unknown',
+      action: metadata.action || 'unknown',
+      model: metadata.model || 'unknown',
+      provider: metadata.provider || 'unknown',
+      inputTokens: 0,
+      outputTokens: 0,
+      inputCost: 0,
+      outputCost: 0,
+      totalCost: 0,
+      duration: Date.now() - startTime,
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+      isCached: false
+    });
     
     throw error;
   }
