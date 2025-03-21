@@ -145,7 +145,7 @@ export const clearMetrics = (): void => {
 // Cache an AI response
 export const cacheResponse = (
   key: string,
-  data: any,
+  data: Record<string, unknown>,
   ttlMs: number,
   metadata: {
     action: string;
@@ -216,7 +216,7 @@ export const cacheResponse = (
 };
 
 // Get a cached response
-export const getCachedResponse = (key: string): any | null => {
+export const getCachedResponse = (key: string): Record<string, unknown> | null => {
   // Skip cache lookup in test environment
   if (isTestEnvironment()) {
     return null;

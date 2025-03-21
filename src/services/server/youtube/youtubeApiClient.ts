@@ -65,7 +65,7 @@ function getCachedResponse<T>(cacheKey: string): YouTubeApiResponse<T> | null {
 
   try {
     if (fs.existsSync(cachePath)) {
-      const fileStats = fs.statSync(cachePath);
+      // Check if file exists and read it
       const cacheData = JSON.parse(fs.readFileSync(cachePath, 'utf-8'));
 
       // Check if cache has expired
