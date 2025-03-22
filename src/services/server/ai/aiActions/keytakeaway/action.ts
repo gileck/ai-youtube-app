@@ -22,11 +22,19 @@ const generateChapterRecommendationsPrompt = (chapterTitle: string, transcript: 
 /**
  * Generate a prompt for creating structured recommendations from combined plain text
  * @param recommendations The combined plain text recommendations
+ * @param count The number of recommendations to generate (default: 10)
+ * @param videoTitle The title of the video (default: "Unknown Video")
  * @returns A formatted prompt string
  */
-const generateStructuredRecommendationsPrompt = (recommendations: string): string => {
+const generateStructuredRecommendationsPrompt = (
+  recommendations: string, 
+  count: number = 10, 
+  videoTitle: string = "Unknown Video"
+): string => {
   return prompts.keytakeaway
-    .replace('{{recommendations}}', recommendations);
+    .replace('{{recommendations}}', recommendations)
+    .replace('{{count}}', count.toString())
+    .replace('{{videoTitle}}', videoTitle);
 };
 
 /**
@@ -80,17 +88,19 @@ const processChapterToPlainText = async (
  * @param model The model to use
  * @param combinedRecommendations The combined plain text recommendations
  * @param cachingOptions Caching options
+ * @param videoTitle The title of the video
  * @returns Array of structured takeaway items
  */
 const generateStructuredRecommendations = async (
   adapter: AIModelAdapter,
   model: string,
   combinedRecommendations: string,
-  cachingOptions: Record<string, unknown>
+  cachingOptions: Record<string, unknown>,
+  videoTitle: string
 ): Promise<TakeawayItem[]> => {
   try {
     // Create the prompt for generating structured recommendations
-    const prompt = generateStructuredRecommendationsPrompt(combinedRecommendations);
+    const prompt = generateStructuredRecommendationsPrompt(combinedRecommendations, 10, videoTitle);
 
     // Configure JSON options
     const options: AIModelJSONOptions = {
@@ -165,12 +175,16 @@ export const keyTakeawayProcessor: AIActionProcessor = {
     const { cachingEnabled } = getSettings();
 
     // Setup caching options
+    const keytakeawayParams = params as KeyTakeawayParams;
     const cachingOptions = {
       action: 'keytakeaway',
       enableCaching: options.skipCache ? false : cachingEnabled,
-      videoId: (params.type === ACTION_TYPES.KEYTAKEAWAY ? (params as KeyTakeawayParams).videoId : undefined) || 'unknown',
+      videoId: keytakeawayParams.videoId || 'unknown',
       cacheTTL: 7 * 24 * 60 * 60 * 1000 // Cache for 7 days
     };
+
+    // Get video title from params or use a default
+    const videoTitle = keytakeawayParams.videoTitle || 'Unknown Video';
 
     // Track processing start time
     const processingStartTime = Date.now();
@@ -216,7 +230,8 @@ export const keyTakeawayProcessor: AIActionProcessor = {
             adapter,
             model,
             fullTranscriptRecs,
-            cachingOptions
+            cachingOptions,
+            videoTitle
           );
 
           // Calculate processing time
@@ -278,8 +293,10 @@ export const keyTakeawayProcessor: AIActionProcessor = {
       .join('---\n\n');
 
     // Step 4: Generate structured recommendations from the combined text
+    const recommendationCount = keytakeawayParams.count || 10;
+    
     const structuredRecommendationsResponse = await adapter.processPromptToJSON<TakeawayItem[]>(
-      generateStructuredRecommendationsPrompt(combinedRecommendations),
+      generateStructuredRecommendationsPrompt(combinedRecommendations, recommendationCount, videoTitle),
       model,
       {
         responseSchema: {
@@ -297,10 +314,8 @@ export const keyTakeawayProcessor: AIActionProcessor = {
         }
       },
       {
-        videoId: cachingOptions.videoId as string,
-        action: cachingOptions.action as string,
-        enableCaching: cachingOptions.enableCaching as boolean,
-        cacheTTL: cachingOptions.cacheTTL as number
+        ...cachingOptions,
+        enableCaching: cachingOptions.enableCaching
       }
     );
 

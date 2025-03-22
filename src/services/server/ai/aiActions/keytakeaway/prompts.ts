@@ -29,7 +29,10 @@ Transcript:
 {{transcript}}`,
 
   // Prompt for generating structured recommendations from combined chapter recommendations
-  keytakeaway: `Based on the following extracted recommendations from a video, create a structured list of HIGHLY SPECIFIC and IMMEDIATELY ACTIONABLE recommendations.
+  keytakeaway: `Based on the following extracted recommendations from the video titled "{{videoTitle}}", create a structured list of {{count}} most valuable and important recommendations.
+  The recommendations must be HIGHLY SPECIFIC and IMMEDIATELY ACTIONABLE.
+  The recommendations should be relevant to the video title and subject.
+  
 
 IMPORTANT REQUIREMENTS:
 1. Each recommendation MUST be extremely specific and concrete - avoid general advice or vague suggestions

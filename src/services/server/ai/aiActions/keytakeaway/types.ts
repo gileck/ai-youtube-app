@@ -10,6 +10,7 @@ import { TakeawayItem as SharedTakeawayItem, KeyTakeawayResponseData } from '../
 export interface KeyTakeawayParams {
   type: typeof ACTION_TYPES.KEYTAKEAWAY;
   videoId?: string;
+  videoTitle?: string;
   count?: number;
 }
 
