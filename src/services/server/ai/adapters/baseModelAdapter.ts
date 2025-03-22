@@ -18,6 +18,7 @@ import {
 import { AIModelDefinition } from '../../../../types/shared/models';
 import { processWithCaching } from './adapterUtils';
 import { SpecificModelAdapter } from './specificModelAdapter';
+import crypto from 'crypto';
 
 export class BaseModelAdapter implements AIModelAdapter {
   private specificAdapter: SpecificModelAdapter;
@@ -44,7 +45,7 @@ export class BaseModelAdapter implements AIModelAdapter {
     const action = metadata?.action || 'unknown';
     
     // Create a hash of the full prompt to ensure uniqueness without storing the entire prompt
-    const promptHash = require('crypto')
+    const promptHash = crypto
       .createHash('sha256')
       .update(prompt)
       .digest('hex')
