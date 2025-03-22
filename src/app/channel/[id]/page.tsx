@@ -9,15 +9,15 @@ import {
   Chip, 
   Button, 
   CircularProgress, 
-  IconButton,
-  ToggleButtonGroup,
-  ToggleButton,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
   SelectChangeEvent,
-  Divider
+  ToggleButtonGroup,
+  ToggleButton,
+  Divider,
+  IconButton
 } from '@mui/material';
 import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder';
 import BookmarkIcon from '@mui/icons-material/Bookmark';
@@ -223,9 +223,11 @@ export default function ChannelPage() {
   if (isLoading && !channelData) {
     return (
       <AppLayout>
-        <Container maxWidth="lg">
-          <Box sx={{ py: 8, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            <CircularProgress />
+        <Container maxWidth="lg" sx={{ px: 0 }}>
+          <Box sx={{ py: { xs: 1, sm: 2 } }}>
+            <Box sx={{ py: 8, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              <CircularProgress />
+            </Box>
           </Box>
         </Container>
       </AppLayout>
@@ -236,14 +238,16 @@ export default function ChannelPage() {
   if (!channelData) {
     return (
       <AppLayout>
-        <Container maxWidth="lg">
-          <Box sx={{ py: 4, textAlign: 'center' }}>
-            <Typography variant="h5" color="error" gutterBottom>
-              Error Loading Channel
-            </Typography>
-            <Typography color="text.secondary">
-              {error || 'Could not load channel details. Please try again later.'}
-            </Typography>
+        <Container maxWidth="lg" sx={{ px: 0 }}>
+          <Box sx={{ py: { xs: 1, sm: 2 } }}>
+            <Box sx={{ py: 4, textAlign: 'center' }}>
+              <Typography variant="h5" color="error" gutterBottom>
+                Error Loading Channel
+              </Typography>
+              <Typography color="text.secondary">
+                {error || 'Could not load channel details. Please try again later.'}
+              </Typography>
+            </Box>
           </Box>
         </Container>
       </AppLayout>
@@ -253,19 +257,37 @@ export default function ChannelPage() {
   return (
     <AppLayout>
       <ChannelViewTracker channelData={channelData}>
-        <Container maxWidth="lg">
-          <Box sx={{ py: 4 }}>
+        <Container maxWidth="lg" sx={{ px: 0 }}>
+          <Box sx={{ py: { xs: 1, sm: 2 } }}>
             {/* Channel Header */}
             <Box sx={{ mb: 4 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                mb: 2,
+                gap: { xs: 1, sm: 2 }
+              }}>
                 <Avatar 
                   src={channelData.thumbnail} 
                   alt={channelData.title}
-                  sx={{ width: 80, height: 80, mr: 2 }}
+                  sx={{ 
+                    width: { xs: 60, sm: 80 }, 
+                    height: { xs: 60, sm: 80 }, 
+                    mr: { xs: 1, sm: 2 }
+                  }}
                 />
                 <Box>
                   <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Typography variant="h4" component="h1">
+                    <Typography 
+                      variant="h4" 
+                      component="h1"
+                      sx={{ 
+                        fontSize: { xs: '1.5rem', sm: '2.125rem' },
+                        wordBreak: 'break-word',
+                        overflowWrap: 'break-word',
+                        whiteSpace: 'normal'
+                      }}
+                    >
                       {channelData.title}
                     </Typography>
                     <IconButton 
@@ -280,28 +302,39 @@ export default function ChannelPage() {
                       )}
                     </IconButton>
                   </Box>
-                  <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
+                  <Box sx={{ display: 'flex', gap: { xs: 1, sm: 2 }, mt: 1, flexWrap: 'wrap' }}>
                     <Chip 
                       label={`${formatNumber(channelData.subscriberCount)} subscribers`} 
-                      variant="outlined" 
+                      variant="outlined"
+                      sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
                     />
                     <Chip 
                       label={`${formatNumber(channelData.videoCount)} videos`} 
-                      variant="outlined" 
+                      variant="outlined"
+                      sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
                     />
                     <Chip 
                       label={`${formatNumber(channelData.viewCount)} views`} 
-                      variant="outlined" 
+                      variant="outlined"
+                      sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
                     />
                   </Box>
                 </Box>
               </Box>
               
               {channelData.description && (
-                <Typography variant="body1" sx={{ mt: 2, mb: 3 }}>
-                  {channelData.description.length > 300
-                    ? `${channelData.description.substring(0, 300)}...`
-                    : channelData.description}
+                <Typography 
+                  variant="body1" 
+                  sx={{ 
+                    mt: 2, 
+                    mb: 3,
+                    fontSize: { xs: '0.875rem', sm: '1rem' },
+                    wordBreak: 'break-word',
+                    overflowWrap: 'break-word',
+                    whiteSpace: 'normal'
+                  }}
+                >
+                  {channelData.description}
                 </Typography>
               )}
               
@@ -309,10 +342,17 @@ export default function ChannelPage() {
             </Box>
             
             {/* Filters */}
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+            <Box sx={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              mb: 3, 
+              flexWrap: 'wrap', 
+              gap: { xs: 1, sm: 2 }
+            }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 }, flexWrap: 'wrap' }}>
                 <FormControl size="small" sx={{ minWidth: 150 }}>
-                  <InputLabel id="sort-select-label">Sort By</InputLabel>
+                  <InputLabel id="sort-select-label" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Sort By</InputLabel>
                   <Select
                     labelId="sort-select-label"
                     id="sort-select"
@@ -320,10 +360,11 @@ export default function ChannelPage() {
                     label="Sort By"
                     onChange={handleSortChange}
                     startAdornment={<SortIcon sx={{ mr: 1 }} />}
+                    sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
                   >
-                    <MenuItem value="date">Date (newest)</MenuItem>
-                    <MenuItem value="viewCount">View Count</MenuItem>
-                    <MenuItem value="rating">Rating</MenuItem>
+                    <MenuItem value="date" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Date (newest)</MenuItem>
+                    <MenuItem value="viewCount" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>View Count</MenuItem>
+                    <MenuItem value="rating" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Rating</MenuItem>
                   </Select>
                 </FormControl>
                 
@@ -333,6 +374,7 @@ export default function ChannelPage() {
                   onChange={handleDurationChange}
                   aria-label="duration filter"
                   size="small"
+                  sx={{ '& .MuiToggleButton-root': { fontSize: { xs: '0.7rem', sm: '0.8rem' } } }}
                 >
                   <ToggleButton value="all" aria-label="all durations">
                     All

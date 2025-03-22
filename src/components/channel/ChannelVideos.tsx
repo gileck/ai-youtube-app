@@ -115,7 +115,7 @@ export default function ChannelVideos({ videos, viewMode = 'grid' }: ChannelVide
   // Render videos in list view mode
   if (viewMode === 'list') {
     return (
-      <Paper variant="outlined">
+      <Paper variant="outlined" sx={{ overflow: 'hidden' }}>
         <List sx={{ width: '100%', p: 0 }}>
           {videos.map((video, index) => (
             <React.Fragment key={video.id}>
@@ -123,7 +123,8 @@ export default function ChannelVideos({ videos, viewMode = 'grid' }: ChannelVide
               <ListItem 
                 alignItems="flex-start"
                 sx={{ 
-                  py: 2,
+                  py: { xs: 0.5, sm: 1 },
+                  px: { xs: 0.5, sm: 1 },
                   '&:hover': {
                     bgcolor: 'action.hover',
                   }
@@ -133,6 +134,10 @@ export default function ChannelVideos({ videos, viewMode = 'grid' }: ChannelVide
                     edge="end" 
                     onClick={() => handleBookmarkToggle(video)}
                     size="small"
+                    sx={{ 
+                      mr: { xs: 0, sm: 0.5 },
+                      mt: { xs: 0, sm: 0.5 }
+                    }}
                   >
                     {isBookmarked(video.id) ? (
                       <BookmarkIcon fontSize="small" color="primary" />
@@ -142,15 +147,15 @@ export default function ChannelVideos({ videos, viewMode = 'grid' }: ChannelVide
                   </IconButton>
                 }
               >
-                <ListItemAvatar sx={{ mr: 2 }}>
-                  <Box sx={{ position: 'relative', width: 120, height: 68 }}>
+                <ListItemAvatar sx={{ mr: { xs: 0.5, sm: 1 } }}>
+                  <Box sx={{ position: 'relative', width: { xs: 80, sm: 120 }, height: { xs: 45, sm: 68 } }}>
                     <Avatar 
                       variant="rounded"
                       src={video.thumbnail}
                       alt={video.title}
                       sx={{ 
-                        width: 120, 
-                        height: 68,
+                        width: '100%', 
+                        height: '100%',
                         borderRadius: 1
                       }}
                       component={Link}
@@ -190,19 +195,17 @@ export default function ChannelVideos({ videos, viewMode = 'grid' }: ChannelVide
                           color: 'primary.main',
                         },
                         mb: 1,
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        lineHeight: 1.2,
+                        fontSize: { xs: '0.875rem', sm: '1rem' },
+                        wordBreak: 'break-word',
+                        overflowWrap: 'break-word',
+                        whiteSpace: 'normal'
                       }}
                     >
                       {video.title}
                     </Typography>
                   }
                   secondary={
-                    <Box sx={{ mt: 1 }}>
+                    <Box sx={{ mt: 1, display: { xs: 'none', sm: 'block' } }}>
                       <Stack direction="row" spacing={2} sx={{ flexWrap: 'wrap', gap: 2 }}>
                         <Box 
                           sx={{ 
@@ -214,11 +217,14 @@ export default function ChannelVideos({ videos, viewMode = 'grid' }: ChannelVide
                             py: 0.5,
                             '&:hover': {
                               bgcolor: 'rgba(0, 0, 0, 0.1)',
-                            }
+                            },
+                            fontSize: { xs: '0.7rem', sm: '0.875rem' }
                           }}
                         >
                           <CalendarTodayIcon fontSize="small" sx={{ mr: 1 }} />
-                          <Typography variant="body2">{formatFullDate(video.publishedAt)}</Typography>
+                          <Typography variant="body2" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}>
+                            {formatFullDate(video.publishedAt)}
+                          </Typography>
                         </Box>
                         
                         {video.viewCount && (
@@ -232,11 +238,14 @@ export default function ChannelVideos({ videos, viewMode = 'grid' }: ChannelVide
                               py: 0.5,
                               '&:hover': {
                                 bgcolor: 'rgba(0, 0, 0, 0.1)',
-                              }
+                              },
+                              fontSize: { xs: '0.7rem', sm: '0.875rem' }
                             }}
                           >
                             <VisibilityIcon fontSize="small" sx={{ mr: 1 }} />
-                            <Typography variant="body2">{formatNumber(video.viewCount)}</Typography>
+                            <Typography variant="body2" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}>
+                              {formatNumber(video.viewCount)} views
+                            </Typography>
                           </Box>
                         )}
                         
@@ -251,11 +260,14 @@ export default function ChannelVideos({ videos, viewMode = 'grid' }: ChannelVide
                               py: 0.5,
                               '&:hover': {
                                 bgcolor: 'rgba(0, 0, 0, 0.1)',
-                              }
+                              },
+                              fontSize: { xs: '0.7rem', sm: '0.875rem' }
                             }}
                           >
                             <ThumbUpIcon fontSize="small" sx={{ mr: 1 }} />
-                            <Typography variant="body2">{formatNumber(video.likeCount)}</Typography>
+                            <Typography variant="body2" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}>
+                              {formatNumber(video.likeCount)} likes
+                            </Typography>
                           </Box>
                         )}
                       </Stack>
@@ -272,7 +284,7 @@ export default function ChannelVideos({ videos, viewMode = 'grid' }: ChannelVide
 
   // Render videos in grid view mode (default)
   return (
-    <Grid container spacing={3}>
+    <Grid container spacing={{ xs: 1, sm: 2, md: 3 }}>
       {videos.map((video) => (
         <Grid item xs={12} sm={6} md={4} key={video.id}>
           <Card 
@@ -329,7 +341,7 @@ export default function ChannelVideos({ videos, viewMode = 'grid' }: ChannelVide
               )}
             </Box>
             
-            <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+            <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', p: { xs: 0.5, sm: 1, md: 2 } }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <Typography 
                   variant="body1" 
@@ -343,12 +355,10 @@ export default function ChannelVideos({ videos, viewMode = 'grid' }: ChannelVide
                       color: 'primary.main',
                     },
                     mb: 1,
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    lineHeight: 1.2,
+                    fontSize: { xs: '0.875rem', sm: '1rem' },
+                    wordBreak: 'break-word',
+                    overflowWrap: 'break-word',
+                    whiteSpace: 'normal'
                   }}
                 >
                   {video.title}
@@ -368,11 +378,11 @@ export default function ChannelVideos({ videos, viewMode = 'grid' }: ChannelVide
               </Box>
               
               {/* Added publish date */}
-              <Typography variant="caption" color="text.secondary" sx={{ mb: 1 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ mb: 1, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
                 {formatPublishDate(video.publishedAt)}
               </Typography>
               
-              <Box sx={{ mt: 'auto', pt: 1 }}>
+              <Box sx={{ mt: 'auto', pt: 1, display: { xs: 'none', sm: 'block' } }}>
                 <Stack direction="row" spacing={2} sx={{ flexWrap: 'wrap', gap: 2 }}>
                   {video.viewCount && (
                     <Box 
@@ -385,11 +395,14 @@ export default function ChannelVideos({ videos, viewMode = 'grid' }: ChannelVide
                         py: 0.5,
                         '&:hover': {
                           bgcolor: 'rgba(0, 0, 0, 0.1)',
-                        }
+                        },
+                        fontSize: { xs: '0.7rem', sm: '0.875rem' }
                       }}
                     >
                       <VisibilityIcon fontSize="small" sx={{ mr: 1 }} />
-                      <Typography variant="body2">{formatNumber(video.viewCount)}</Typography>
+                      <Typography variant="body2" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}>
+                        {formatNumber(video.viewCount)} views
+                      </Typography>
                     </Box>
                   )}
                   
@@ -404,11 +417,14 @@ export default function ChannelVideos({ videos, viewMode = 'grid' }: ChannelVide
                         py: 0.5,
                         '&:hover': {
                           bgcolor: 'rgba(0, 0, 0, 0.1)',
-                        }
+                        },
+                        fontSize: { xs: '0.7rem', sm: '0.875rem' }
                       }}
                     >
                       <ThumbUpIcon fontSize="small" sx={{ mr: 1 }} />
-                      <Typography variant="body2">{formatNumber(video.likeCount)}</Typography>
+                      <Typography variant="body2" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}>
+                        {formatNumber(video.likeCount)} likes
+                      </Typography>
                     </Box>
                   )}
                 </Stack>

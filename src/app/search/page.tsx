@@ -122,8 +122,8 @@ const SearchPageContent = () => {
 
   return (
     <AppLayout>
-      <Container maxWidth="lg">
-        <Box sx={{ py: 4, borderRadius: 2, boxShadow: '0 2px 10px rgba(0,0,0,0.05)', my: 2 }}>
+      <Container maxWidth="lg" sx={{ px: 0 }}>
+        <Box sx={{ py: { xs: 1, sm: 2 }, borderRadius: 2, boxShadow: '0 2px 10px rgba(0,0,0,0.05)', my: { xs: 1, sm: 2 } }}>
           <Typography variant="h4" component="h1" gutterBottom>
             {query ? 'Search Results' : 'Search'}
           </Typography>
@@ -138,7 +138,7 @@ const SearchPageContent = () => {
               flexDirection: 'column',
               gap: 2,
               width: '100%',
-              p: 3,
+              p: { xs: 1, sm: 2, md: 3 },
               borderRadius: 2,
               border: '1px solid #eaeaea',
             }}
@@ -280,7 +280,7 @@ const SearchPageContent = () => {
                             }}
                           />
                         </Box>
-                        <CardContent sx={{ flex: '1 0 auto', display: 'flex', flexDirection: 'column' }}>
+                        <CardContent sx={{ flex: '1 0 auto', display: 'flex', flexDirection: 'column', p: { xs: 1, sm: 2, md: 3 } }}>
                           <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                             <Typography 
                               variant="h6" 
@@ -384,7 +384,7 @@ const SearchPageContent = () => {
                             }}
                           />
                         </CardMedia>
-                        <CardContent sx={{ flex: '1 0 auto', display: 'flex', flexDirection: 'column' }}>
+                        <CardContent sx={{ flex: '1 0 auto', display: 'flex', flexDirection: 'column', p: { xs: 1, sm: 2, md: 3 } }}>
                           <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                             <Typography 
                               variant="h6" 
@@ -396,17 +396,14 @@ const SearchPageContent = () => {
                                 '&:hover': {
                                   color: 'primary.main',
                                 },
+                                fontSize: { xs: '1rem', sm: '1.25rem' },
+                                wordBreak: 'break-word',
+                                overflowWrap: 'break-word',
+                                whiteSpace: 'normal'
                               }}
                             >
                               {result.title}
                             </Typography>
-                            <Button
-                              onClick={() => handleBookmarkToggle(result)}
-                              color={isBookmarked(result.id) ? 'primary' : 'inherit'}
-                              sx={{ minWidth: 'auto', p: 1 }}
-                            >
-                              {isBookmarked(result.id) ? <BookmarkIcon /> : <BookmarkBorderIcon />}
-                            </Button>
                           </Box>
                           <Typography 
                             variant="body2" 
@@ -419,11 +416,16 @@ const SearchPageContent = () => {
                               '&:hover': {
                                 color: 'primary.main',
                               },
+                              fontSize: { xs: '0.75rem', sm: '0.875rem' }
                             }}
                           >
                             {result.channelTitle}
                           </Typography>
-                          <Typography variant="caption" color="text.secondary">
+                          <Typography 
+                            variant="caption" 
+                            color="text.secondary"
+                            sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}
+                          >
                             {result.publishedAt ? formatDate(result.publishedAt) : 'Unknown date'}
                           </Typography>
                           <Box sx={{ mt: 'auto', pt: 2 }}>
@@ -433,6 +435,7 @@ const SearchPageContent = () => {
                               component={Link}
                               href={`/video/${result.id}`}
                               size="small"
+                              sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
                             >
                               Analyze with AI
                             </Button>
@@ -495,7 +498,7 @@ const SearchPageContent = () => {
                               }}
                             />
                           </CardMedia>
-                          <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+                          <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', p: { xs: 1, sm: 2, md: 3 } }}>
                             <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                               <Typography 
                                 variant="body1" 
@@ -508,14 +511,16 @@ const SearchPageContent = () => {
                                   '&:hover': {
                                     color: 'primary.main',
                                   },
+                                  wordBreak: 'break-word',
+                                  overflowWrap: 'break-word'
                                 }}
                               >
-                                {video.title.length > 60 ? `${video.title.substring(0, 60)}...` : video.title}
+                                {video.title}
                               </Typography>
                               <Button
                                 onClick={() => handleBookmarkToggle(video)}
                                 color={isBookmarked(video.id) ? 'primary' : 'inherit'}
-                                sx={{ minWidth: 'auto', p: 0.5 }}
+                                sx={{ minWidth: 'auto', p: 0.5, flexShrink: 0 }}
                               >
                                 {isBookmarked(video.id) ? <BookmarkIcon fontSize="small" /> : <BookmarkBorderIcon fontSize="small" />}
                               </Button>

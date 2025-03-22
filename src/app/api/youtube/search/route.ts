@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
   try {
     // Get search query from query params
     const searchParams = request.nextUrl.searchParams;
-    const query = searchParams.get('query');
+    const query = searchParams.get('query') || searchParams.get('q');
     const type = searchParams.get('type') || 'video';
     const maxResults = parseInt(searchParams.get('maxResults') || '10', 10);
 
