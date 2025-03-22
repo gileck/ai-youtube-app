@@ -277,7 +277,7 @@ export class GeminiAdapter implements SpecificModelAdapter {
       // console.log('Response Text:', responseText);
 
       // Write response text to file
-      fs.writeFileSync('responseText.txt', responseText);
+      // fs.writeFileSync('responseText.txt', responseText);
 
 
       // Parse JSON
