@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const query = searchParams.get('query');
-    
+
     if (!query) {
       return NextResponse.json({
         success: false,
@@ -19,10 +19,10 @@ export async function GET(request: NextRequest) {
         }
       }, { status: 200 });
     }
-    
+
     // Clean up the query - remove @ if present
     const cleanQuery = query.startsWith('@') ? query.substring(1) : query;
-    
+
     // Fetch channel ID from YouTube API
     const apiKey = process.env.YOUTUBE_API_KEY;
     if (!apiKey) {
@@ -34,27 +34,27 @@ export async function GET(request: NextRequest) {
         }
       }, { status: 200 });
     }
-    
+
     // First try to search by handle (custom URL)
     let response;
-    
+
     // Try to find by custom URL (handle)
     try {
       response = await axios.get(
         `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(cleanQuery)}&type=channel&maxResults=1&key=${apiKey}`
       );
-      
+
       if (response.data.items && response.data.items.length > 0) {
         const channelId = response.data.items[0].id.channelId;
-        
+
         // Get full channel details
         const channelResponse = await axios.get(
           `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics,brandingSettings&id=${channelId}&key=${apiKey}`
         );
-        
+
         if (channelResponse.data.items && channelResponse.data.items.length > 0) {
           const channelData = channelResponse.data.items[0];
-          
+
           // Format response
           const channelDetails = {
             id: channelData.id,
@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
             viewCount: parseInt(channelData.statistics.viewCount || '0', 10),
             country: channelData.snippet.country || null
           };
-          
+
           return NextResponse.json({
             success: true,
             data: channelDetails
@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
       console.error('Error searching for channel by handle:', error);
       // Continue to try by channel name search
     }
-    
+
     // If we couldn't find by handle, return not found
     return NextResponse.json({
       success: false,
@@ -88,10 +88,10 @@ export async function GET(request: NextRequest) {
         message: `Could not find channel with name or handle "${query}"`
       }
     }, { status: 200 });
-    
+
   } catch (error) {
     console.error('Error resolving channel:', error);
-    
+
     return NextResponse.json({
       success: false,
       error: {
@@ -102,3 +102,4 @@ export async function GET(request: NextRequest) {
     }, { status: 200 });
   }
 }
+

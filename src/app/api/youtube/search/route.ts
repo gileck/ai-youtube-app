@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
     const query = searchParams.get('query');
     const type = searchParams.get('type') || 'video';
     const maxResults = parseInt(searchParams.get('maxResults') || '10', 10);
-    
+
     if (!query) {
       return NextResponse.json({
         success: false,
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
         }
       }, { status: 200 });
     }
-    
+
     // Call YouTube API using our unified client
     const response = await callYouTubeApi<YouTubeSearchResponse>({
       endpoint: 'search',
@@ -68,11 +68,11 @@ export async function GET(request: NextRequest) {
       },
       enableCaching: true
     });
-    
+
     if (!response.success || !response.data) {
       return NextResponse.json(response, { status: 200 });
     }
-    
+
     // Format response
     const searchResults = response.data.items.map((item: YouTubeSearchItem) => {
       const resultType = item.id.kind?.split('#')[1] || '';
@@ -87,16 +87,16 @@ export async function GET(request: NextRequest) {
         type: resultType
       };
     });
-    
+
     return NextResponse.json({
       success: true,
       data: searchResults,
       cached: response.cached
     }, { status: 200 });
-    
+
   } catch (error) {
     console.error('Error searching YouTube:', error);
-    
+
     return NextResponse.json({
       success: false,
       error: {

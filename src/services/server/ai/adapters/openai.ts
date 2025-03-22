@@ -1,9 +1,9 @@
 import OpenAI from 'openai';
-import { AIModelAdapter, AIModelCostEstimate, AIModelOptions, AIModelResponse, AIModelMetadata } from './types';
+import { AIModelCostEstimate, AIModelOptions, AIModelResponse } from './types';
 import { OPENAI_MODELS, AIModelDefinition } from '../../../../types/shared/models';
-import { processWithCaching } from './adapterUtils';
+import { SpecificModelAdapter } from './specificModelAdapter';
 
-export class OpenAIAdapter implements AIModelAdapter {
+export class OpenAIAdapter implements SpecificModelAdapter {
   private openai: OpenAI;
   name = 'openai';
   
@@ -43,11 +43,6 @@ export class OpenAIAdapter implements AIModelAdapter {
     return model;
   }
   
-  // Pure function to create cache key
-  private createCacheKey(prompt: string, modelId: string, options?: AIModelOptions): string {
-    return `openai:${modelId}:${JSON.stringify(options)}:${prompt.substring(0, 100)}`;
-  }
-  
   // Estimate cost based on input text and expected output
   estimateCost(inputText: string, modelId: string, expectedOutputTokens?: number): AIModelCostEstimate {
     // Get the model definition from shared models
@@ -73,105 +68,77 @@ export class OpenAIAdapter implements AIModelAdapter {
     };
   }
   
-  // Process a prompt with the OpenAI API
-  async processPrompt(
+  // Make the actual API call to the OpenAI model
+  async makeModelAPICall(
     prompt: string, 
     modelId: string, 
-    options?: AIModelOptions, 
-    metadata?: AIModelMetadata
-  ): Promise<AIModelResponse> {
+    options?: AIModelOptions
+  ): Promise<Omit<AIModelResponse, 'isCached'>> {
     // Get model by ID for cost calculation
     const model = this.getModelById(modelId);
     
-    // Create cache key
-    const cacheKey = this.createCacheKey(prompt, modelId, options);
+    // Make the API call
+    const response = await this.openai.chat.completions.create({
+      model: modelId,
+      messages: [{ role: 'user', content: prompt }],
+      temperature: options?.temperature || 0.7,
+      max_tokens: options?.maxTokens || Math.min(model.maxTokens, 2000),
+      top_p: options?.topP || 1,
+      frequency_penalty: options?.frequencyPenalty || 0,
+      presence_penalty: options?.presencePenalty || 0,
+      response_format: options?.responseType === 'json' 
+        ? { type: 'json_object' } 
+        : undefined
+    });
     
-    // Use the centralized processWithCaching utility
-    const result = await processWithCaching(
-      cacheKey,
-      {
-        ...metadata,
-        model: modelId,
-        provider: 'openai'
-      },
-      async () => {
-        // Make the API call
-        const response = await this.openai.chat.completions.create({
-          model: modelId,
-          messages: [{ role: 'user', content: prompt }],
-          temperature: options?.temperature || 0.7,
-          max_tokens: options?.maxTokens || Math.min(model.maxTokens, 2000),
-          top_p: options?.topP || 1,
-          frequency_penalty: options?.frequencyPenalty || 0,
-          presence_penalty: options?.presencePenalty || 0,
-          response_format: options?.responseType === 'json' 
-            ? { type: 'json_object' } 
-            : undefined
-        });
+    // Extract usage information
+    const usage = response.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
+    
+    // Calculate actual cost using pricing from the shared model definition
+    const inputCost = (usage.prompt_tokens / 1000) * model.inputCostPer1KTokens;
+    const outputCost = (usage.completion_tokens / 1000) * model.outputCostPer1KTokens;
+    const totalCost = inputCost + outputCost;
+    
+    // Get the response text
+    const responseText = response.choices[0]?.message?.content || '';
+    
+    // Parse JSON if requested
+    let parsedJson;
+    if (options?.responseType === 'json') {
+      try {
+        // Clean the response text to remove markdown formatting
+        let cleanedText = responseText;
         
-        // Extract usage information
-        const usage = response.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
-        
-        // Calculate actual cost using pricing from the shared model definition
-        const inputCost = (usage.prompt_tokens / 1000) * model.inputCostPer1KTokens;
-        const outputCost = (usage.completion_tokens / 1000) * model.outputCostPer1KTokens;
-        const totalCost = inputCost + outputCost;
-        
-        // Get the response text
-        const responseText = response.choices[0]?.message?.content || '';
-        
-        // Parse JSON if requested
-        let parsedJson;
-        if (options?.responseType === 'json') {
-          try {
-            // Clean the response text to remove markdown formatting
-            let cleanedText = responseText;
-            
-            // Remove markdown code blocks (```json ... ```)
-            const jsonBlockMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
-            if (jsonBlockMatch && jsonBlockMatch[1]) {
-              cleanedText = jsonBlockMatch[1].trim();
-            }
-            
-            // Parse the cleaned JSON
-            parsedJson = JSON.parse(cleanedText);
-          } catch (error) {
-            console.warn('Failed to parse JSON response from OpenAI:', error);
-          }
+        // Remove markdown code blocks (```json ... ```)
+        const jsonBlockMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
+        if (jsonBlockMatch && jsonBlockMatch[1]) {
+          cleanedText = jsonBlockMatch[1].trim();
         }
         
-        // Return the formatted response with isCached property
-        return {
-          text: responseText,
-          ...(parsedJson !== undefined && { parsedJson }),
-          usage: {
-            promptTokens: usage.prompt_tokens,
-            completionTokens: usage.completion_tokens,
-            totalTokens: usage.total_tokens
-          },
-          cost: {
-            inputCost,
-            outputCost,
-            totalCost
-          },
-          model: modelId,
-          provider: 'openai',
-          videoTitle: metadata?.videoId ? undefined : undefined, // Will be populated if needed
-          isCached: false // This will be overwritten by processWithCaching
-        };
+        // Parse the cleaned JSON
+        parsedJson = JSON.parse(cleanedText);
+      } catch (error) {
+        console.warn('Failed to parse JSON response from OpenAI:', error);
       }
-    );
+    }
     
-    // Return the result as AIModelResponse
+    // Return the formatted response
     return {
-      text: result.text,
-      parsedJson: result.parsedJson,
-      usage: result.usage,
-      cost: result.cost,
-      videoTitle: result.videoTitle,
-      isCached: result.isCached,
-      model: result.model,
-      provider: result.provider
+      text: responseText,
+      ...(parsedJson !== undefined && { parsedJson }),
+      usage: {
+        promptTokens: usage.prompt_tokens,
+        completionTokens: usage.completion_tokens,
+        totalTokens: usage.total_tokens
+      },
+      cost: {
+        inputCost,
+        outputCost,
+        totalCost
+      },
+      model: modelId,
+      provider: 'openai',
+      videoTitle: undefined // Will be populated if needed
     };
   }
 }

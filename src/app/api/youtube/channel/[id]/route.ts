@@ -10,7 +10,7 @@ export async function GET(
 ) {
   try {
     const channelId = (await params).id;
-    
+
     if (!channelId) {
       return NextResponse.json({
         success: false,
@@ -20,7 +20,7 @@ export async function GET(
         }
       }, { status: 200 });
     }
-    
+
     // Fetch channel details from YouTube API
     const apiKey = process.env.YOUTUBE_API_KEY;
     if (!apiKey) {
@@ -32,11 +32,11 @@ export async function GET(
         }
       }, { status: 200 });
     }
-    
+
     const response = await axios.get(
       `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics,brandingSettings&id=${channelId}&key=${apiKey}`
     );
-    
+
     if (!response.data.items || response.data.items.length === 0) {
       return NextResponse.json({
         success: false,
@@ -46,9 +46,9 @@ export async function GET(
         }
       }, { status: 200 });
     }
-    
+
     const channelData = response.data.items[0];
-    
+
     // Format response
     const channelDetails = {
       id: channelData.id,
@@ -62,15 +62,15 @@ export async function GET(
       viewCount: parseInt(channelData.statistics.viewCount || '0', 10),
       country: channelData.snippet.country || null
     };
-    
+
     return NextResponse.json({
       success: true,
       data: channelDetails
     }, { status: 200 });
-    
+
   } catch (error) {
     console.error('Error fetching channel details:', error);
-    
+
     return NextResponse.json({
       success: false,
       error: {

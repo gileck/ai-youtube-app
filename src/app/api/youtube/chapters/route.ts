@@ -29,21 +29,21 @@ export async function GET(request: NextRequest) {
     // Parse request parameters
     const url = new URL(request.url);
     const videoIdOrUrl = url.searchParams.get('videoId') || '';
-    
+
     // Validate input
     if (!videoIdOrUrl) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Missing videoId parameter' 
+      return NextResponse.json({
+        success: false,
+        error: 'Missing videoId parameter'
       }, { status: 200 });
     }
-    
+
     // Extract video ID
     const videoId = extractVideoId(videoIdOrUrl);
-    
+
     // Fetch raw chapters data
     const chapters = await fetchChapters(videoId);
-    
+
     // Return success response
     return NextResponse.json({
       success: true,
@@ -52,10 +52,11 @@ export async function GET(request: NextRequest) {
     }, { status: 200 });
   } catch (error) {
     // Return error response (with 200 status code per guidelines)
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: false,
       error: 'Failed to fetch chapters',
       details: error instanceof Error ? error.message : String(error)
     }, { status: 200 });
   }
 }
+

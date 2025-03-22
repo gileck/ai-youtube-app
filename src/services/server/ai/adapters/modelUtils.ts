@@ -1,7 +1,6 @@
-import { OpenAIAdapter } from './openai';
-import { GeminiAdapter } from './gemini';
 import { AIModelAdapter } from './types';
 import { AIModelDefinition, getAllModels } from '../../../../types/shared/models';
+import { getAdapterByName } from './adapterFactory';
 
 // Map of model prefixes to their providers
 const MODEL_PROVIDERS: Record<string, string> = {
@@ -34,9 +33,9 @@ export const getAdapterForModel = (modelName: string): AIModelAdapter => {
   
   switch (provider) {
     case 'openai':
-      return new OpenAIAdapter();
+      return getAdapterByName('openai');
     case 'google':
-      return new GeminiAdapter();
+      return getAdapterByName('gemini');
     default:
       throw new Error(`Adapter not implemented for provider: ${provider}`);
   }

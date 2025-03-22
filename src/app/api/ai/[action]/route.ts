@@ -3,19 +3,19 @@ import { getChaptersTranscripts } from '../../../../services/server/content/chap
 import { createAIActionProcessor } from '../../../../services/server/ai/processorFactory';
 import { AIActionParams, ChapterContent } from '../../../../services/server/ai/types';
 import { isValidActionType } from '../../../../services/server/ai/aiActions/constants';
-
+export { apiConfig as config } from '../../apiConfig'
 /**
  * API route handler for AI actions
  * Handles all AI actions with a unified interface
  */
 export async function POST(
   request: NextRequest,
-  context: { params: Promise<{ action: string }> }  
+  context: { params: Promise<{ action: string }> }
 ) {
   try {
     // Get action type from route parameter
     const { action } = await context.params;
-    
+
     // Validate action type
     if (!isValidActionType(action)) {
       return NextResponse.json({
@@ -26,18 +26,18 @@ export async function POST(
         }
       }, { status: 200 });
     }
-    
+
     // Parse request body
     const body = await request.json();
-    const { 
-      videoId, 
-      model, 
+    const {
+      videoId,
+      model,
       costApprovalThreshold,
       approved = false,
       skipCache = false,
       ...actionParams
     } = body;
-    
+
     // Validate required parameters
     if (!videoId) {
       return NextResponse.json({
@@ -48,7 +48,7 @@ export async function POST(
         }
       }, { status: 200 });
     }
-    
+
     if (!model) {
       return NextResponse.json({
         success: false,
@@ -58,7 +58,7 @@ export async function POST(
         }
       }, { status: 200 });
     }
-    
+
     // Create action processor based on action type
     const processor = createAIActionProcessor(action);
     if (!processor) {
@@ -73,7 +73,7 @@ export async function POST(
 
     // Use getChaptersTranscripts to fetch and combine transcript and chapters
     const combinedData = await getChaptersTranscripts(videoId);
-    
+
     // Check if we have transcript data
     if (!combinedData.chapters.length || combinedData.metadata.transcriptItemCount === 0) {
       return NextResponse.json({
@@ -84,7 +84,7 @@ export async function POST(
         }
       }, { status: 200 });
     }
-    
+
     // Map to ChapterContent[] format expected by the processor
     const chapterContents: ChapterContent[] = combinedData.chapters.map(chapter => ({
       title: chapter.title,
@@ -92,16 +92,16 @@ export async function POST(
       endTime: chapter.endTime,
       content: chapter.content
     }));
-    
+
     // Create full transcript text from all chapters
     const fullTranscript = chapterContents.map(chapter => chapter.content).join(' ');
-    
+
     // Create typed action parameters
     const typedParams: AIActionParams = {
       type: action,
       ...actionParams
     };
-    
+
     // If not approved, check cost first
     if (!approved) {
       const estimatedCost = processor.estimateCost(
@@ -110,7 +110,7 @@ export async function POST(
         model,
         typedParams
       );
-      
+
       // If cost exceeds threshold, return approval required response
       if (estimatedCost > costApprovalThreshold) {
         return NextResponse.json({
@@ -120,7 +120,7 @@ export async function POST(
         }, { status: 200 });
       }
     }
-    
+
     // Process the request
     const result = await processor.process(
       fullTranscript,
@@ -129,7 +129,7 @@ export async function POST(
       typedParams,
       { skipCache }
     );
-    
+
     // Return successful response with result
     return NextResponse.json({
       success: true,
@@ -138,10 +138,10 @@ export async function POST(
         cost: result.cost
       }
     }, { status: 200 });
-    
+
   } catch (error) {
     console.error('Error processing AI action:', error);
-    
+
     return NextResponse.json({
       success: false,
       error: {

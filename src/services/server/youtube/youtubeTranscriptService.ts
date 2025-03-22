@@ -30,13 +30,14 @@ export interface TranscriptResponse {
  * @returns Formatted time string
  */
 export const formatTime = (seconds: number): string => {
-  if (typeof seconds !== 'number' || isNaN(seconds)) {
-    return '00:00';
-  }
-
   const minutes = Math.floor(seconds / 60);
-  const secondsRemaining = seconds % 60;
-  return `${minutes}:${secondsRemaining.toString().padStart(2, '0')}`;
+  const remainingSeconds = Math.floor(seconds % 60);
+  
+  // Format with leading zeros
+  const formattedMinutes = String(minutes).padStart(2, '0');
+  const formattedSeconds = String(remainingSeconds).padStart(2, '0');
+  
+  return `${formattedMinutes}:${formattedSeconds}`;
 };
 
 /**
@@ -46,6 +47,19 @@ export const formatTime = (seconds: number): string => {
  */
 export const fetchTranscriptWithYoutubei = async (videoId: string): Promise<TranscriptResponse> => {
   try {
+    // Temporarily silence console.error to suppress YouTube.js parser errors
+    const originalConsoleError = console.error;
+    console.error = (...args: unknown[]) => {
+      const errorMessage = args.map(arg => String(arg)).join(' ');
+      if (errorMessage.includes('[YOUTUBEJS][Parser]') && 
+          errorMessage.includes('CompositeVideoPrimaryInfo not found')) {
+        // Suppress this specific error
+        return;
+      }
+      // Pass through all other errors
+      originalConsoleError(...args);
+    };
+
     // Initialize the Innertube client
     const youtube = await Innertube.create({
       lang: 'en',
@@ -58,7 +72,9 @@ export const fetchTranscriptWithYoutubei = async (videoId: string): Promise<Tran
 
     // Get the transcript
     const transcriptInfo = await info.getTranscript();
-    // const transcriptData: IGetTranscriptResponse = transcriptInfo.page;
+    
+    // Restore original console.error
+    console.error = originalConsoleError;
 
     if (!transcriptInfo || !transcriptInfo.transcript || !transcriptInfo.transcript.content) {
       return {

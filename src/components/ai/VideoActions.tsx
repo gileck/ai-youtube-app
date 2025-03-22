@@ -12,7 +12,12 @@ import {
   TextField,
   CircularProgress,
   Typography,
-  Paper
+  Paper,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  SelectChangeEvent
 } from '@mui/material';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useApiClient } from '../../contexts/ApiContext';
@@ -292,20 +297,47 @@ export default function VideoActions({ videoId, videoTitle }: VideoActionsProps)
 
   return (
     <Box>
-      {/* AI Action Buttons */}
-      <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-        {Object.entries(AI_ACTIONS).map(([key, action]) => (
-          <Button
-            key={key}
-            variant="contained"
-            color="primary"
-            startIcon={action.icon}
-            onClick={() => handleActionClick(key)}
+      {/* AI Action Select Box */}
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="subtitle1" gutterBottom>
+          AI Actions
+        </Typography>
+        <FormControl fullWidth sx={{ maxWidth: 500 }}>
+          <InputLabel id="ai-action-select-label">Select an AI action</InputLabel>
+          <Select
+            labelId="ai-action-select-label"
+            id="ai-action-select"
+            value=""
+            label="Select an AI action"
+            onChange={(e: SelectChangeEvent) => {
+              const selectedAction = e.target.value;
+              if (selectedAction) {
+                handleActionClick(selectedAction);
+                // Reset the select after selection
+                e.target.value = "";
+              }
+            }}
             disabled={loading}
+            sx={{ 
+              '& .MuiSelect-select': { 
+                display: 'flex', 
+                alignItems: 'center' 
+              }
+            }}
           >
-            {action.label}
-          </Button>
-        ))}
+            <MenuItem value="" disabled>
+              <em>Select an AI action...</em>
+            </MenuItem>
+            {Object.entries(AI_ACTIONS).map(([key, action]) => (
+              <MenuItem key={key} value={key} sx={{ display: 'flex', alignItems: 'center' }}>
+                <Box sx={{ mr: 1, display: 'flex', alignItems: 'center' }}>
+                  {action.icon}
+                </Box>
+                {action.label}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
       </Box>
 
       {/* Loading Indicator */}

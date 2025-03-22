@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const maxResults = parseInt(searchParams.get('maxResults') || '5', 10);
-    
+
     // Fetch featured channels from YouTube API
     const apiKey = process.env.YOUTUBE_API_KEY;
     if (!apiKey) {
@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
         }
       }, { status: 200 });
     }
-    
+
     // We'll use a predefined list of popular tech channel IDs for featured channels
     // In a production app, this could be dynamically determined or stored in a database
     const featuredChannelIds = [
@@ -60,13 +60,13 @@ export async function GET(request: NextRequest) {
       'UCsBjURrPoezykLs9EqgamOA', // Fireship
       'UCW5YeuERMmlnqo4oq8vwUpg'  // The Net Ninja
     ];
-    
+
     try {
       // Fetch details for all featured channels
       const response = await axios.get(
         `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics,brandingSettings&id=${featuredChannelIds.join(',')}&maxResults=${maxResults}&key=${apiKey}`
       );
-      
+
       if (!response.data.items || response.data.items.length === 0) {
         return NextResponse.json({
           success: false,
@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
           }
         }, { status: 200 });
       }
-      
+
       // Format response
       const channels = response.data.items.map((channel: YouTubeChannelItem) => ({
         id: channel.id,
@@ -90,14 +90,14 @@ export async function GET(request: NextRequest) {
         viewCount: parseInt(channel.statistics.viewCount || '0', 10),
         country: channel.snippet.country || null
       }));
-      
+
       return NextResponse.json({
         success: true,
         data: channels
       }, { status: 200 });
     } catch (apiError) {
       console.error('YouTube API error:', apiError);
-      
+
       return NextResponse.json({
         success: false,
         error: {
@@ -109,7 +109,7 @@ export async function GET(request: NextRequest) {
     }
   } catch (error) {
     console.error('Error fetching featured channels:', error);
-    
+
     return NextResponse.json({
       success: false,
       error: {
@@ -120,3 +120,5 @@ export async function GET(request: NextRequest) {
     }, { status: 200 });
   }
 }
+
+
