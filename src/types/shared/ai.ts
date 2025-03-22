@@ -12,37 +12,65 @@ export type AIActionParams =
   | { type: typeof ACTION_TYPES.TOPICS }
   | { type: typeof ACTION_TYPES.KEYTAKEAWAY }
 
-// Response type that can be either a string or structured data
-export type AIResponse = string | {
+// Define specific response types for each action
+export interface SummaryResponseData {
   chapterSummaries: Array<{ title: string; summary: string }>;
   finalSummary: string;
-} | {
+}
+
+export interface TopicItem {
+  emoji: string;
+  text: string;
+  bulletPoints: string[];
+}
+
+export interface TopicsResponseData {
   chapterTopics: Array<{
     title: string;
-    topics: Array<{
-      emoji: string;
-      text: string;
-      bulletPoints: string[];
-    }>
+    topics: Array<TopicItem>;
   }>;
-} | Array<{
+}
+
+export interface KeypointItem {
   emoji: string;
   title: string;
   details: string;
   mechanism: string;
-}> | Array<{
+}
+
+export interface TakeawayItem {
+  emoji: string;
+  recommendation: string;
+  details: string;
+  mechanism: string;
+}
+
+export interface KeyTakeawayChapter {
   title: string;
-  takeaways: Array<{
-    emoji: string;
-    recommendation: string;
-    details: string;
-    mechanism: string;
-  }>;
+  takeaways: Array<TakeawayItem>;
   isCached?: boolean;
   cost?: number;
   tokens?: number;
   processingTime?: number;
-}>;
+}
+
+// Base interface for all AI responses with metadata
+export interface AIResponseBase {
+  isCached?: boolean;
+  cost?: number;
+  tokens?: number;
+  processingTime?: number;
+}
+
+// Generic response type that can handle any data structure
+export type AIResponse<T = any> = string | (T & AIResponseBase);
+
+// Type aliases for specific action responses
+export type SummaryResponse = AIResponse<SummaryResponseData>;
+export type QuestionResponse = AIResponse<string>;
+export type KeypointsResponse = AIResponse<KeypointItem[]>;
+export type TopicsResponse = AIResponse<TopicsResponseData>;
+export type KeyTakeawayResponse = AIResponse<KeyTakeawayChapter[]>;
 
 // Chapter content with transcript mapped to it
 export interface ChapterContent {
@@ -53,12 +81,12 @@ export interface ChapterContent {
 }
 
 // API response format for AI actions
-export interface AIActionResponse {
+export interface AIActionResponse<T = any> {
   success: boolean;
   needApproval?: boolean;
   estimatedCost?: number;
   data?: {
-    result: AIResponse;
+    result: AIResponse<T>;
     cost: number;
     isCached?: boolean;
     tokens?: number;
@@ -72,20 +100,20 @@ export interface AIActionResponse {
 }
 
 // History item for storing past AI actions
-export interface AIHistoryItem {
+export interface AIHistoryItem<T = any> {
   id: string;
   videoId: string;
   videoTitle: string;
   action: string;
   timestamp: number;
   cost: number;
-  result: AIResponse;
+  result: AIResponse<T>;
   params: AIActionParams;
 }
 
 // Result of an AI processing operation
-export interface AIProcessingResult {
-  result: AIResponse;
+export interface AIProcessingResult<T = any> {
+  result: AIResponse<T>;
   cost: number;
   isCached?: boolean;
   tokens?: number;

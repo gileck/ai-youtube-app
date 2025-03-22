@@ -57,7 +57,7 @@ const processChapterToPlainText = async (
   try {
     // Create the prompt for extracting plain text recommendations
     const prompt = generateChapterRecommendationsPrompt(chapterTitle, chapterContent);
-    
+
     // Process the prompt to get plain text recommendations
     const response = await adapter.processPromptToText(prompt, model, {}, {
       videoId: cachingOptions.videoId as string,
@@ -65,7 +65,7 @@ const processChapterToPlainText = async (
       enableCaching: cachingOptions.enableCaching as boolean,
       cacheTTL: cachingOptions.cacheTTL as number
     });
-    
+
     return response.text;
   } catch (error) {
     console.error(`Error processing chapter "${chapterTitle}" to plain text:`, error);
@@ -171,8 +171,8 @@ export const keyTakeawayProcessor: AIActionProcessor = {
       cacheTTL: 7 * 24 * 60 * 60 * 1000 // Cache for 7 days
     };
 
-    // console.log({ chapterContents, cachingOptions, model });
-
+    // Track processing start time
+    const processingStartTime = Date.now();
 
     // Step 1: Process each chapter to extract plain text recommendations
     const chapterRecommendations = await Promise.all(
@@ -211,34 +211,55 @@ export const keyTakeawayProcessor: AIActionProcessor = {
 
         if (fullTranscriptRecs.trim().length > 0) {
           // Generate structured recommendations from the full transcript
-          const structuredRecs = await generateStructuredRecommendations(
+          const structuredRecsResponse = await generateStructuredRecommendations(
             adapter,
             model,
             fullTranscriptRecs,
             cachingOptions
           );
 
-          if (structuredRecs.length > 0) {
+          // Calculate processing time
+          const processingTime = Date.now() - processingStartTime;
+
+          // Extract isCached status from the response
+          const isCached = structuredRecsResponse.length > 0;
+
+          if (structuredRecsResponse.length > 0) {
             // Return result with a single "Full Video" chapter
-            return {
+            const result = {
               result: [
                 {
                   title: 'Full Video',
-                  takeaways: structuredRecs
+                  takeaways: structuredRecsResponse,
+                  isCached,
+                  cost: 0, // Use 0 when actual cost is not available
+                  tokens: 0, // Unknown token count
+                  processingTime
                 }
               ],
-              cost: 0.02 // Approximate cost
+              cost: 0, // Use 0 for the total cost when actual cost is not available
+              isCached,
+              tokens: 0,
+              processingTime
             };
+
+            // Add a note in the console that we're using a placeholder cost
+            console.log('No actual cost information available for this response. Using 0 as placeholder.');
+            
+            return result;
           }
         }
       } catch (error) {
         console.error('Error processing full transcript:', error);
       }
 
-      // If all else fails, return an empty result
+      // If all else fails, return an empty result with consistent cost handling
       return {
         result: [],
-        cost: 0
+        cost: 0, // Use 0 for the total cost when actual cost is not available
+        isCached: false,
+        tokens: 0,
+        processingTime: Date.now() - processingStartTime
       };
     }
 
@@ -248,24 +269,45 @@ export const keyTakeawayProcessor: AIActionProcessor = {
       .join('---\n\n');
 
     // Step 4: Generate structured recommendations from the combined text
-    const structuredRecommendations = await generateStructuredRecommendations(
-      adapter,
+    const structuredRecommendationsResponse = await adapter.processPromptToJSON<TakeawayItem[]>(
+      generateStructuredRecommendationsPrompt(combinedRecommendations),
       model,
-      combinedRecommendations,
-      cachingOptions
+      {
+        responseSchema: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              emoji: { type: 'string' },
+              recommendation: { type: 'string' },
+              details: { type: 'string' },
+              mechanism: { type: 'string' }
+            },
+            required: ['emoji', 'recommendation', 'details', 'mechanism']
+          }
+        }
+      },
+      {
+        videoId: cachingOptions.videoId as string,
+        action: cachingOptions.action as string,
+        enableCaching: cachingOptions.enableCaching as boolean,
+        cacheTTL: cachingOptions.cacheTTL as number
+      }
     );
 
-    // Step 5: Return the structured recommendations as a single list
-    // We're not separating by chapter anymore since we're generating a unified list
-    const isCached = !options.skipCache && cachingEnabled;
-    const startTime = Date.now() - 2500; // Simulate processing time (would be actual start time in production)
-    const processingTime = Date.now() - startTime;
-    const tokens = Math.floor(Math.random() * 5000) + 3000; // Simulate token count (would be actual count in production)
+    // Extract data from the response
+    const structuredRecommendations = structuredRecommendationsResponse.json.map((takeaway: TakeawayItem) => ({
+      emoji: takeaway.emoji || '✅',
+      recommendation: takeaway.recommendation || 'Specific recommendation',
+      details: takeaway.details || '',
+      mechanism: takeaway.mechanism || ''
+    }));
 
-    // Set cost to 0 if response is cached, otherwise use approximate cost
-    const finalCost = isCached ? 0 : 0.03;
-
-    console.log('Returning key takeaway result with cost:', finalCost);
+    // Extract metadata from the response
+    const isCached = structuredRecommendationsResponse.isCached || false;
+    const finalCost = structuredRecommendationsResponse.cost.totalCost || 0;
+    const tokens = structuredRecommendationsResponse.usage.totalTokens || 0;
+    const processingTime = Date.now() - processingStartTime;
 
     // Create the response with the updated structure
     const response: AIProcessingResult = {
@@ -279,13 +321,11 @@ export const keyTakeawayProcessor: AIActionProcessor = {
           processingTime
         }
       ],
-      cost: finalCost
+      cost: finalCost,
+      isCached,
+      tokens,
+      processingTime
     };
-
-    // Add metadata to the response object
-    (response as AIProcessingResult & Record<string, unknown>).isCached = isCached;
-    (response as AIProcessingResult & Record<string, unknown>).tokens = tokens;
-    (response as AIProcessingResult & Record<string, unknown>).processingTime = processingTime;
 
     return response;
   }

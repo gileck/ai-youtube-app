@@ -106,7 +106,7 @@ export class GeminiAdapter implements SpecificModelAdapter {
       const result = await model.generateContent(prompt);
       const response = result.response;
 
-      console.log('Response Text:', response.text());
+      // console.log('Response Text:', response.text());
 
       // Extract the text from the response
       const responseText = response.text();
@@ -239,7 +239,7 @@ export class GeminiAdapter implements SpecificModelAdapter {
   ): Promise<Omit<AIModelJSONResponse<T>, 'isCached'>> {
     // Default options
     const defaultOptions = {
-      maxTokens: 10_000
+      maxTokens: 100_000
     };
 
     // Merge with provided options
@@ -273,8 +273,8 @@ export class GeminiAdapter implements SpecificModelAdapter {
       // Extract the text from the response
       const responseText = response.text();
 
-      console.log('typeof responseText', typeof responseText);
-      console.log('Response Text:', responseText);
+      // console.log('typeof responseText', typeof responseText);
+      // console.log('Response Text:', responseText);
 
       // Write response text to file
       fs.writeFileSync('responseText.txt', responseText);

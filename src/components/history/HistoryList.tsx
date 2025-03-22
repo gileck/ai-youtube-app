@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { Box, Typography, Paper, Grid, Chip, Button, Divider, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
-import { AIHistoryItem } from '../../services/client/ai/types';
+import { AIHistoryItem, TopicsResponseData, SummaryResponseData, TopicItem } from '../../services/client/ai/types';
 import { getHistoryItems, removeHistoryItem, clearHistory } from '../../services/client/historyService';
 
 export default function HistoryList() {
@@ -45,8 +45,9 @@ export default function HistoryList() {
     setConfirmClearOpen(false);
   };
   
-  // Render the appropriate result based on action type
-  const renderResult = (item: AIHistoryItem) => {
+  // Render the result based on its type
+  const renderResult = (item: AIHistoryItem): React.ReactNode => {
+    // Check if result is a string
     if (typeof item.result === 'string') {
       // For string results (question, keypoints)
       if (item.action === 'question' && item.params.type === 'question') {
@@ -65,19 +66,23 @@ export default function HistoryList() {
       
       // For keypoints or other string results
       return <Typography variant="body2">{item.result}</Typography>;
-    } else if (item.action === 'topics' && 'chapterTopics' in item.result) {
-      // For Topics action
+    }
+    
+    // Check if result is a topics response
+    if ('chapterTopics' in item.result) {
+      const topicsResult = item.result as TopicsResponseData;
+      
       return (
         <Box>
           <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
             Topics by Chapter
           </Typography>
           
-          {item.result.chapterTopics.map((chapter, index) => (
+          {topicsResult.chapterTopics.map((chapter, index: number) => (
             <Box key={index} sx={{ mb: 2 }}>
               <Typography variant="subtitle2" fontWeight="bold">{chapter.title}</Typography>
               <Box sx={{ pl: 2 }}>
-                {chapter.topics.map((topic, topicIndex) => (
+                {chapter.topics.map((topic: TopicItem, topicIndex: number) => (
                   <Box key={topicIndex} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                     <Typography sx={{ mr: 1 }}>{topic.emoji}</Typography>
                     <Typography variant="body2">{topic.text}</Typography>
@@ -89,20 +94,22 @@ export default function HistoryList() {
         </Box>
       );
     } else if ('finalSummary' in item.result && 'chapterSummaries' in item.result) {
-      // For Summary action
+      // Summary response
+      const summaryResult = item.result as SummaryResponseData;
+      
       return (
         <Box>
           <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
             Summary
           </Typography>
-          <Typography paragraph>{item.result.finalSummary}</Typography>
+          <Typography paragraph>{summaryResult.finalSummary}</Typography>
           
-          {item.result.chapterSummaries.length > 0 && (
+          {summaryResult.chapterSummaries.length > 0 && (
             <>
               <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
                 Chapter Summaries
               </Typography>
-              {item.result.chapterSummaries.map((chapter, index) => (
+              {summaryResult.chapterSummaries.map((chapter, index: number) => (
                 <Box key={index} sx={{ mb: 2 }}>
                   <Typography variant="subtitle2">{chapter.title}</Typography>
                   <Typography variant="body2">{chapter.summary}</Typography>
