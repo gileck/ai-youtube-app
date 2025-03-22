@@ -5,6 +5,7 @@ import { KeyTakeawayParams, TakeawayItem } from './types';
 import { prompts } from './prompts';
 import { getSettings } from '../../../../../services/client/settingsClient';
 import { ACTION_TYPES } from '../constants';
+import { KeyTakeawayResponseData } from '../../../../../types/shared/ai';
 
 /**
  * Generate a prompt for extracting plain text recommendations from a chapter
@@ -227,16 +228,23 @@ export const keyTakeawayProcessor: AIActionProcessor = {
           if (structuredRecsResponse.length > 0) {
             // Return result with a single "Full Video" chapter
             const result = {
-              result: [
-                {
-                  title: 'Full Video',
-                  takeaways: structuredRecsResponse,
-                  isCached,
-                  cost: 0, // Use 0 when actual cost is not available
-                  tokens: 0, // Unknown token count
-                  processingTime
-                }
-              ],
+              result: {
+                chapters: [
+                  {
+                    title: 'Full Video',
+                    takeaways: structuredRecsResponse,
+                    isCached,
+                    cost: 0, // Use 0 when actual cost is not available
+                    tokens: 0, // Unknown token count
+                    processingTime
+                  }
+                ],
+                combinedTakeaways: structuredRecsResponse,
+                isCached,
+                cost: 0, // Use 0 for the total cost when actual cost is not available
+                tokens: 0,
+                processingTime
+              },
               cost: 0, // Use 0 for the total cost when actual cost is not available
               isCached,
               tokens: 0,
@@ -255,7 +263,14 @@ export const keyTakeawayProcessor: AIActionProcessor = {
 
       // If all else fails, return an empty result with consistent cost handling
       return {
-        result: [],
+        result: {
+          chapters: [],
+          combinedTakeaways: [],
+          isCached: false,
+          cost: 0, // Use 0 for the total cost when actual cost is not available
+          tokens: 0,
+          processingTime: Date.now() - processingStartTime
+        },
         cost: 0, // Use 0 for the total cost when actual cost is not available
         isCached: false,
         tokens: 0,
@@ -311,16 +326,21 @@ export const keyTakeawayProcessor: AIActionProcessor = {
 
     // Create the response with the updated structure
     const response: AIProcessingResult = {
-      result: [
-        {
-          title: 'All Recommendations',
+      result: {
+        chapters: chaptersWithRecommendations.map(chapter => ({
+          title: chapter.title,
           takeaways: structuredRecommendations,
           isCached,
           cost: finalCost,
           tokens,
           processingTime
-        }
-      ],
+        })),
+        combinedTakeaways: structuredRecommendations,
+        isCached,
+        cost: finalCost,
+        tokens,
+        processingTime
+      },
       cost: finalCost,
       isCached,
       tokens,

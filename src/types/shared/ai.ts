@@ -54,6 +54,15 @@ export interface KeyTakeawayChapter {
   processingTime?: number;
 }
 
+export interface KeyTakeawayResponseData {
+  chapters: KeyTakeawayChapter[];
+  combinedTakeaways: TakeawayItem[];
+  isCached?: boolean;
+  cost?: number;
+  tokens?: number;
+  processingTime?: number;
+}
+
 // Base interface for all AI responses with metadata
 export interface AIResponseBase {
   isCached?: boolean;
@@ -70,7 +79,7 @@ export type SummaryResponse = AIResponse<SummaryResponseData>;
 export type QuestionResponse = AIResponse<string>;
 export type KeypointsResponse = AIResponse<KeypointItem[]>;
 export type TopicsResponse = AIResponse<TopicsResponseData>;
-export type KeyTakeawayResponse = AIResponse<KeyTakeawayChapter[]>;
+export type KeyTakeawayResponse = AIResponse<KeyTakeawayResponseData>;
 
 // Chapter content with transcript mapped to it
 export interface ChapterContent {
