@@ -3,7 +3,8 @@ import { getChaptersTranscripts } from '../../../../services/server/content/chap
 import { createAIActionProcessor } from '../../../../services/server/ai/processorFactory';
 import { AIActionParams, ChapterContent } from '../../../../services/server/ai/types';
 import { isValidActionType } from '../../../../services/server/ai/aiActions/constants';
-export { apiConfig as config } from '../../apiConfig'
+import { apiConfig } from '../../apiConfig'
+export const config = apiConfig
 /**
  * API route handler for AI actions
  * Handles all AI actions with a unified interface
@@ -135,7 +136,8 @@ export async function POST(
       success: true,
       data: {
         result: result.result,
-        cost: result.cost
+        cost: result.cost,
+        isCached: result.isCached || false
       }
     }, { status: 200 });
 

@@ -149,8 +149,9 @@ export const topicsProcessor: AIActionProcessor = {
       return {
         title: chapter.title,
         topics: response.json,
-        cost: response.cost.totalCost
-      } as ChapterTopics & { cost: number };
+        cost: response.cost.totalCost,
+        isCached: response.isCached
+      } as ChapterTopics & { cost: number; isCached: boolean };
     });
 
     // Wait for all chapter topics
@@ -161,6 +162,9 @@ export const topicsProcessor: AIActionProcessor = {
       (total, result) => total + result.cost, 0
     );
 
+    // Check if all results were cached
+    const allCached = chapterResults.every(result => result.isCached);
+
     // Return structured result with the correct type
     const result: AIProcessingResult = {
       result: {
@@ -169,7 +173,8 @@ export const topicsProcessor: AIActionProcessor = {
           topics: result.topics
         }))
       },
-      cost: totalCost
+      cost: totalCost,
+      isCached: allCached
     };
 
     return result;

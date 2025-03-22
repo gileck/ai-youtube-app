@@ -44,6 +44,7 @@ export default function VideoActions({ videoId, videoTitle }: VideoActionsProps)
   const [question, setQuestion] = useState('');
   const [questionDialog, setQuestionDialog] = useState(false);
   const [actionParams, setActionParams] = useState<AIActionParams | null>(null);
+  const [response, setResponse] = useState<any>(null);
 
   // Handle action button click
   const handleActionClick = async (action: string) => {
@@ -100,7 +101,8 @@ export default function VideoActions({ videoId, videoTitle }: VideoActionsProps)
         action,
         model: settings.aiModel,
         costApprovalThreshold: settings.costApprovalThreshold,
-        params: actionParams
+        params: actionParams,
+        skipCache: !settings.cachingEnabled // Pass the caching setting
       });
 
       if (!response.success) {
@@ -118,10 +120,13 @@ export default function VideoActions({ videoId, videoTitle }: VideoActionsProps)
       
       // Store the cost separately instead of modifying the result
       let responseCost = 0;
+      let isCached = false;
       
       if (response.data) {
         responseCost = response.data.cost || 0;
+        isCached = response.data.isCached || false;
         console.log('Response data cost:', responseCost);
+        console.log('Response from cache:', isCached);
         
         // Set the result without modifying its structure
         setResult(response.data.result || null);
@@ -140,6 +145,7 @@ export default function VideoActions({ videoId, videoTitle }: VideoActionsProps)
           params: actionParams || createActionParams(action) // Provide default params if null
         });
       }
+      setResponse(response);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unknown error occurred');
     } finally {
@@ -163,7 +169,8 @@ export default function VideoActions({ videoId, videoTitle }: VideoActionsProps)
         model: settings.aiModel,
         costApprovalThreshold: settings.costApprovalThreshold,
         approved: true,
-        params: actionParams || undefined
+        params: actionParams || undefined,
+        skipCache: !settings.cachingEnabled // Pass the caching setting
       });
       
       if (!response.success) {
@@ -175,10 +182,13 @@ export default function VideoActions({ videoId, videoTitle }: VideoActionsProps)
       
       // Store the cost separately instead of modifying the result
       let responseCost = 0;
+      let isCached = false;
       
       if (response.data) {
         responseCost = response.data.cost || 0;
+        isCached = response.data.isCached || false;
         console.log('Response data cost after approval:', responseCost);
+        console.log('Response from cache after approval:', isCached);
         
         // Set the result without modifying its structure
         setResult(response.data.result || null);
@@ -197,6 +207,7 @@ export default function VideoActions({ videoId, videoTitle }: VideoActionsProps)
           params: actionParams || createActionParams(activeAction) // Provide default params if null
         });
       }
+      setResponse(response);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unknown error occurred');
     } finally {
@@ -219,72 +230,19 @@ export default function VideoActions({ videoId, videoTitle }: VideoActionsProps)
     const actionRenderer = AI_ACTIONS[activeAction];
     if (!actionRenderer) return null;
     
-    // Extract details from the response
-    let cost: number | undefined = undefined;
-    let isCached = false;
-    let tokens = 0;
-    let processingTime = 0;
+    // Get cache status from the response data
+    const isCached = response?.data?.isCached || false;
     
+    // Log for debugging
     console.log('Result in renderActionResult:', result);
-    
-    if (typeof result === 'object' && result !== null) {
-      // Handle the case where result is an array of chapter takeaways
-      if (Array.isArray(result) && result.length > 0) {
-        console.log('Result is an array:', result);
-        const item = result[0];
-        
-        if (item && typeof item === 'object') {
-          if ('cost' in item && typeof item.cost === 'number') {
-            cost = item.cost;
-            console.log('Found cost in array item:', cost);
-          }
-          
-          if ('isCached' in item) {
-            isCached = Boolean(item.isCached);
-          }
-          
-          if ('tokens' in item && item.tokens !== undefined) {
-            tokens = Number(item.tokens) || 0;
-          }
-          
-          if ('processingTime' in item && item.processingTime !== undefined) {
-            processingTime = Number(item.processingTime) || 0;
-          }
-        }
-      } 
-      // Handle the case where result has direct properties
-      else {
-        const resultObj = result as Record<string, unknown>;
-        
-        if ('cost' in resultObj && typeof resultObj.cost === 'number') {
-          cost = resultObj.cost;
-          console.log('Found direct cost:', cost);
-        }
-        
-        if ('isCached' in resultObj) {
-          isCached = Boolean(resultObj.isCached);
-        }
-        
-        if ('tokens' in resultObj && resultObj.tokens !== undefined) {
-          tokens = Number(resultObj.tokens) || 0;
-        }
-        
-        if ('processingTime' in resultObj && resultObj.processingTime !== undefined) {
-          processingTime = Number(resultObj.processingTime) || 0;
-        }
-      }
-    }
-    
-    console.log('Final cost value:', cost);
+    console.log('Cache status:', isCached);
     
     return (
       <AIActionWrapper 
-        cost={cost} 
+        cost={response?.data?.cost} 
         model={settings.aiModel}
         actionType={actionRenderer.label}
         isCached={isCached}
-        tokens={tokens}
-        processingTime={processingTime}
       >
         {actionRenderer.renderResult({ 
           result, 
