@@ -38,8 +38,19 @@ export class BaseModelAdapter implements AIModelAdapter {
   /**
    * Create a cache key for the request
    */
-  private createCacheKey(prompt: string, modelId: string, options?: Record<string, unknown>): string {
-    return `${this.name}:${modelId}:${JSON.stringify(options)}:${prompt.substring(0, 100)}`;
+  private createCacheKey(prompt: string, modelId: string, options?: Record<string, unknown>, metadata?: AIModelMetadata): string {
+    // Include videoId explicitly in the cache key to prevent cross-video caching issues
+    const videoId = metadata?.videoId || 'unknown';
+    const action = metadata?.action || 'unknown';
+    
+    // Create a hash of the full prompt to ensure uniqueness without storing the entire prompt
+    const promptHash = require('crypto')
+      .createHash('sha256')
+      .update(prompt)
+      .digest('hex')
+      .substring(0, 16);
+    
+    return `${this.name}:${modelId}:${action}:${videoId}:${JSON.stringify(options)}:${promptHash}`;
   }
   
   /**
@@ -86,8 +97,8 @@ export class BaseModelAdapter implements AIModelAdapter {
     options?: AIModelOptions, 
     metadata?: AIModelMetadata
   ): Promise<AIModelResponse> {
-    // Create cache key
-    const cacheKey = this.createCacheKey(prompt, modelId, options);
+    // Create cache key with metadata included
+    const cacheKey = this.createCacheKey(prompt, modelId, options, metadata);
     
     // Use the centralized processWithCaching utility with the correct generic type
     const result = await processWithCaching<AIModelResponse>(
@@ -122,8 +133,8 @@ export class BaseModelAdapter implements AIModelAdapter {
     options?: AIModelTextOptions,
     metadata?: AIModelMetadata
   ): Promise<AIModelTextResponse> {
-    // Create cache key
-    const cacheKey = this.createCacheKey(prompt, modelId, options);
+    // Create cache key with metadata included
+    const cacheKey = this.createCacheKey(prompt, modelId, options, metadata);
     
     // Use the centralized processWithCaching utility with the correct generic type
     const result = await processWithCaching<AIModelTextResponse>(
@@ -158,8 +169,8 @@ export class BaseModelAdapter implements AIModelAdapter {
     options?: AIModelJSONOptions,
     metadata?: AIModelMetadata
   ): Promise<AIModelJSONResponse<T>> {
-    // Create cache key
-    const cacheKey = this.createCacheKey(prompt, modelId, options);
+    // Create cache key with metadata included
+    const cacheKey = this.createCacheKey(prompt, modelId, options, metadata);
     
     // Use the centralized processWithCaching utility with the correct generic type
     const result = await processWithCaching<AIModelJSONResponse<T>>(
