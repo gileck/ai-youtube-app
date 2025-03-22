@@ -223,7 +223,7 @@ export function combineTranscriptAndChapters(
   
   // 3. Map each transcript item to all matching chapters
   transcript.forEach((item) => {
-    const segmentTimeSeconds = item.offset;
+    const segmentTimeSeconds = item.start_seconds;
     
     // Find all chapters that contain this timestamp
     for (let i = 0; i < overlappedChapters.length; i++) {
@@ -241,7 +241,7 @@ export function combineTranscriptAndChapters(
         chapterContent.segments.push({
           text: item.text,
           offset: segmentTimeSeconds,
-          duration: item.duration,
+          duration: item.end_seconds - item.start_seconds,
           relativeOffset: relativePosition
         });
       }

@@ -68,7 +68,7 @@ export const keypointsProcessor: AIActionProcessor = {
     const prompt = generateKeypointsPrompt(count, fullTranscript);
     
     // Process the prompt
-    const response = await adapter.processPrompt(prompt, model, {}, {
+    const response = await adapter.processPromptToText(prompt, model, {}, {
       action: 'keypoints',
       enableCaching: cachingEnabled,
       videoId: keypointsParams.videoId || 'unknown',
@@ -76,7 +76,7 @@ export const keypointsProcessor: AIActionProcessor = {
     });
     
     // Split response into individual keypoints
-    const keypoints = response.text.split('\n').filter(keypoint => keypoint.startsWith('- '));
+    const keypoints = response.text.split('\n').filter((keypoint: string) => keypoint.startsWith('- '));
     
     // Return result
     return {

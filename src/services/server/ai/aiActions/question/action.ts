@@ -46,7 +46,7 @@ export const questionProcessor: AIActionProcessor = {
     const prompt = generateQuestionPrompt(questionParams.question, fullTranscript);
     
     // Process the prompt
-    const response = await adapter.processPrompt(prompt, model);
+    const response = await adapter.processPromptToText(prompt, model);
     
     // Return result
     return {

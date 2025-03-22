@@ -100,7 +100,7 @@ export const summaryProcessor: AIActionProcessor = {
     // Process each chapter
     const chapterPromises = chapterContents.map(async chapter => {
       const prompt = generateChapterSummaryPrompt(chapter.title, chapter.content);
-      const response = await adapter.processPrompt(prompt, model, undefined, metadata);
+      const response = await adapter.processPromptToText(prompt, model, undefined, metadata);
       
       return {
         title: chapter.title,
@@ -120,7 +120,7 @@ export const summaryProcessor: AIActionProcessor = {
     // Apply maxLength parameter if provided
     const maxLength = summaryParams.maxLength;
     const finalSummaryPrompt = generateFinalSummaryPrompt(chapterSummariesText, maxLength);
-    const finalSummaryResponse = await adapter.processPrompt(finalSummaryPrompt, model, undefined, metadata);
+    const finalSummaryResponse = await adapter.processPromptToText(finalSummaryPrompt, model, undefined, metadata);
     
     // Calculate total cost
     const totalCost = chapterResults.reduce(

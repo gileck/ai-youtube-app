@@ -4,7 +4,17 @@
  * Delegates model-specific logic to the individual adapters
  */
 
-import { AIModelAdapter, AIModelCostEstimate, AIModelOptions, AIModelResponse, AIModelMetadata } from './types';
+import { 
+  AIModelAdapter, 
+  AIModelCostEstimate, 
+  AIModelOptions, 
+  AIModelResponse, 
+  AIModelMetadata,
+  AIModelTextOptions,
+  AIModelTextResponse,
+  AIModelJSONOptions,
+  AIModelJSONResponse
+} from './types';
 import { AIModelDefinition } from '../../../../types/shared/models';
 import { processWithCaching } from './adapterUtils';
 import { SpecificModelAdapter } from './specificModelAdapter';
@@ -28,7 +38,7 @@ export class BaseModelAdapter implements AIModelAdapter {
   /**
    * Create a cache key for the request
    */
-  private createCacheKey(prompt: string, modelId: string, options?: AIModelOptions): string {
+  private createCacheKey(prompt: string, modelId: string, options?: any): string {
     return `${this.name}:${modelId}:${JSON.stringify(options)}:${prompt.substring(0, 100)}`;
   }
   
@@ -67,7 +77,7 @@ export class BaseModelAdapter implements AIModelAdapter {
   }
   
   /**
-   * Process a prompt with the AI model
+   * Process a prompt with the AI model (legacy method)
    * Handles caching and cost tracking, delegating the actual API call to the specific adapter
    */
   async processPrompt(
@@ -79,8 +89,8 @@ export class BaseModelAdapter implements AIModelAdapter {
     // Create cache key
     const cacheKey = this.createCacheKey(prompt, modelId, options);
     
-    // Use the centralized processWithCaching utility
-    const result = await processWithCaching(
+    // Use the centralized processWithCaching utility with the correct generic type
+    const result = await processWithCaching<AIModelResponse>(
       cacheKey,
       {
         ...metadata,
@@ -99,16 +109,78 @@ export class BaseModelAdapter implements AIModelAdapter {
       }
     );
     
-    // Return the result as AIModelResponse
-    return {
-      text: result.text,
-      parsedJson: result.parsedJson,
-      usage: result.usage,
-      cost: result.cost,
-      videoTitle: result.videoTitle,
-      isCached: result.isCached,
-      model: result.model,
-      provider: result.provider
-    };
+    return result;
+  }
+
+  /**
+   * Process a prompt and return plain text
+   * Handles caching and cost tracking, delegating the actual API call to the specific adapter
+   */
+  async processPromptToText(
+    prompt: string,
+    modelId: string,
+    options?: AIModelTextOptions,
+    metadata?: AIModelMetadata
+  ): Promise<AIModelTextResponse> {
+    // Create cache key
+    const cacheKey = this.createCacheKey(prompt, modelId, options);
+    
+    // Use the centralized processWithCaching utility with the correct generic type
+    const result = await processWithCaching<AIModelTextResponse>(
+      cacheKey,
+      {
+        ...metadata,
+        model: modelId,
+        provider: this.name
+      },
+      async () => {
+        // Delegate to the specific adapter for the actual API call
+        const response = await this.specificAdapter.makeModelTextAPICall(prompt, modelId, options);
+        
+        // Return the formatted response with isCached property
+        return {
+          ...response,
+          isCached: false // This will be overwritten by processWithCaching
+        };
+      }
+    );
+    
+    return result;
+  }
+
+  /**
+   * Process a prompt and return parsed JSON of type T
+   * Handles caching and cost tracking, delegating the actual API call to the specific adapter
+   */
+  async processPromptToJSON<T>(
+    prompt: string,
+    modelId: string,
+    options?: AIModelJSONOptions,
+    metadata?: AIModelMetadata
+  ): Promise<AIModelJSONResponse<T>> {
+    // Create cache key
+    const cacheKey = this.createCacheKey(prompt, modelId, options);
+    
+    // Use the centralized processWithCaching utility with the correct generic type
+    const result = await processWithCaching<AIModelJSONResponse<T>>(
+      cacheKey,
+      {
+        ...metadata,
+        model: modelId,
+        provider: this.name
+      },
+      async () => {
+        // Delegate to the specific adapter for the actual API call
+        const response = await this.specificAdapter.makeModelJSONAPICall<T>(prompt, modelId, options);
+        
+        // Return the formatted response with isCached property
+        return {
+          ...response,
+          isCached: false // This will be overwritten by processWithCaching
+        };
+      }
+    );
+    
+    return result;
   }
 }

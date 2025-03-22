@@ -5,7 +5,14 @@
  */
 
 import { AIModelDefinition } from '../../../../types/shared/models';
-import { AIModelOptions, AIModelResponse } from './types';
+import { 
+  AIModelOptions, 
+  AIModelResponse, 
+  AIModelTextOptions, 
+  AIModelTextResponse,
+  AIModelJSONOptions,
+  AIModelJSONResponse
+} from './types';
 
 export interface SpecificModelAdapter {
   name: string;
@@ -32,7 +39,7 @@ export interface SpecificModelAdapter {
   getEstimatedOutputRatio: (modelId: string) => number;
   
   /**
-   * Make the actual API call to the model
+   * Make the actual API call to the model (legacy method)
    * This handles only the model-specific API call logic
    * Does not handle caching or cost tracking
    */
@@ -41,4 +48,26 @@ export interface SpecificModelAdapter {
     modelId: string, 
     options?: AIModelOptions
   ) => Promise<Omit<AIModelResponse, 'isCached'>>;
+
+  /**
+   * Make an API call to the model and return plain text
+   * This handles only the model-specific API call logic
+   * Does not handle caching or cost tracking
+   */
+  makeModelTextAPICall: (
+    prompt: string,
+    modelId: string,
+    options?: AIModelTextOptions
+  ) => Promise<Omit<AIModelTextResponse, 'isCached'>>;
+
+  /**
+   * Make an API call to the model and return parsed JSON of type T
+   * This handles only the model-specific API call logic
+   * Does not handle caching or cost tracking
+   */
+  makeModelJSONAPICall: <T>(
+    prompt: string,
+    modelId: string,
+    options?: AIModelJSONOptions
+  ) => Promise<Omit<AIModelJSONResponse<T>, 'isCached'>>;
 }

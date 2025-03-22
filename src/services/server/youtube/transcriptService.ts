@@ -1,9 +1,10 @@
 import { youtubeTranscriptService } from './youtubeTranscriptService';
 
 export interface TranscriptItem {
+  start_seconds: number;
+  end_seconds: number;
   text: string;
-  offset: number;
-  duration: number;
+  start_time_text: string;
 }
 
 /**
@@ -18,17 +19,18 @@ export async function fetchTranscript(videoId: string): Promise<TranscriptItem[]
   try {
     // Fetch transcript using the youtubei.js implementation
     const response = await youtubeTranscriptService.getTranscriptSegments(videoId);
-    
+
     if (response.error || !response.data || !response.data.segments) {
       console.error(`Error fetching transcript for video ${videoId}:`, response.error?.message || 'No segments found');
       return [];
     }
-    
+
     // Transform to our internal format
     return response.data.segments.map(segment => ({
+      start_seconds: segment.start_seconds,
+      end_seconds: segment.end_seconds,
       text: segment.text,
-      offset: segment.start_seconds * 1000, // Convert seconds to milliseconds for offset
-      duration: (segment.end_seconds - segment.start_seconds) * 1000 // Calculate duration in milliseconds
+      start_time_text: segment.start_time_text
     }));
   } catch (error) {
     console.error(`Error fetching transcript for video ${videoId}:`, error);

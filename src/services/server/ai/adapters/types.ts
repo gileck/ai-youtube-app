@@ -17,13 +17,23 @@ export interface AIModelAdapter {
     expectedOutputTokens?: number
   ) => AIModelCostEstimate;
 
-  // Process a prompt with the AI model
-  processPrompt: (
+
+
+  // Process a prompt and return plain text
+  processPromptToText: (
     prompt: string,
     modelId: string,
-    options?: AIModelOptions,
+    options?: AIModelTextOptions,
     metadata?: AIModelMetadata
-  ) => Promise<AIModelResponse>;
+  ) => Promise<AIModelTextResponse>;
+
+  // Process a prompt and return parsed JSON of type T
+  processPromptToJSON: <T>(
+    prompt: string,
+    modelId: string,
+    options?: AIModelJSONOptions,
+    metadata?: AIModelMetadata
+  ) => Promise<AIModelJSONResponse<T>>;
 }
 
 /**
@@ -39,11 +49,31 @@ export interface AIModelCostEstimate {
 }
 
 /**
- * Options for AI model processing
+ * Base options for AI model processing
  */
-export interface AIModelOptions {
+export interface AIModelBaseOptions {
   maxTokens?: number;
+}
+
+/**
+ * Options for AI model processing (legacy)
+ */
+export interface AIModelOptions extends AIModelBaseOptions {
   isJSON?: boolean;               // Flag to indicate if response should be JSON
+  responseSchema?: object;        // Optional schema for structured responses
+}
+
+/**
+ * Options for text-based AI model processing
+ */
+export interface AIModelTextOptions extends AIModelBaseOptions {
+  // Text-specific options can be added here
+}
+
+/**
+ * Options for JSON-based AI model processing
+ */
+export interface AIModelJSONOptions extends AIModelBaseOptions {
   responseSchema?: object;        // Optional schema for structured responses
 }
 
@@ -60,11 +90,9 @@ export interface AIModelMetadata {
 }
 
 /**
- * Response from an AI model
+ * Base response with usage and cost information
  */
-export interface AIModelResponse {
-  text: string;
-  parsedJson?: Record<string, unknown>; // Parsed JSON when responseType is 'json'
+export interface AIModelBaseResponse {
   usage: {
     promptTokens: number;
     completionTokens: number;
@@ -79,4 +107,26 @@ export interface AIModelResponse {
   isCached?: boolean;  // Whether this response was retrieved from cache
   model?: string;      // Model identifier
   provider?: string;   // Provider identifier (openai, google, etc.)
+}
+
+/**
+ * Response from an AI model (legacy)
+ */
+export interface AIModelResponse extends AIModelBaseResponse {
+  text: string;
+  parsedJson?: Record<string, unknown>; // Parsed JSON when responseType is 'json'
+}
+
+/**
+ * Response from a text-based AI model request
+ */
+export interface AIModelTextResponse extends AIModelBaseResponse {
+  text: string;
+}
+
+/**
+ * Response from a JSON-based AI model request
+ */
+export interface AIModelJSONResponse<T> extends AIModelBaseResponse {
+  json: T; // Strongly typed JSON response
 }

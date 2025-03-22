@@ -1,6 +1,6 @@
 import { getAdapterForModel } from '../../adapters/modelUtils';
 import { AIActionProcessor, AIProcessingResult } from '../types';
-import { AIModelOptions, AIModelResponse } from '../../adapters/types';
+import { AIModelJSONOptions } from '../../adapters/types';
 import { ChapterTopics, TopicItem } from './types';
 import { prompts } from './prompts';
 import { getSettings } from '../../../../../services/client/settingsClient';
@@ -31,7 +31,7 @@ const generateChapterTopicsEstimationPrompt = (estimatedLength: number): string 
  * Configure JSON response options for topic extraction
  * @returns Options configured for structured JSON output
  */
-const configureJsonResponseOptions = (): AIModelOptions => {
+const configureJsonResponseOptions = (): AIModelJSONOptions => {
   // Define the response schema for topics
   const topicsSchema = {
     type: 'array',
@@ -51,7 +51,6 @@ const configureJsonResponseOptions = (): AIModelOptions => {
 
   // Return unified configuration for all models
   return {
-    isJSON: true,
     responseSchema: topicsSchema
   };
 };
@@ -61,10 +60,10 @@ const configureJsonResponseOptions = (): AIModelOptions => {
  * @param response The AI model response
  * @returns An array of topic items
  */
-const parseTopicsResponse = (response: AIModelResponse): TopicItem[] => {
+const parseTopicsResponse = (response: any): TopicItem[] => {
   // If we have pre-parsed JSON from the adapter, use it
-  if (response.parsedJson) {
-    const topics = response.parsedJson;
+  if (response.json) {
+    const topics = response.json;
     
     // Validate that we got an array
     if (!Array.isArray(topics)) {
@@ -113,17 +112,18 @@ export const topicsProcessor: AIActionProcessor = {
   estimateCost: (fullTranscript, chapterContents, model) => {
     // Get the appropriate adapter for this model
     const adapter = getAdapterForModel(model);
-
-    // Estimate cost for each chapter's topics extraction
-    const chapterCosts = chapterContents.map(chapter => {
-      const estimationPrompt = generateChapterTopicsEstimationPrompt(chapter.content.length);
-      return adapter.estimateCost(estimationPrompt, model).totalCost;
-    });
-
-    // Return total estimated cost
-    return chapterCosts.reduce((total, cost) => total + cost, 0);
+    
+    // Generate an estimation prompt based on average chapter length
+    const avgLength = chapterContents.reduce((sum, chapter) => sum + chapter.content.length, 0) / chapterContents.length;
+    const estimationPrompt = generateChapterTopicsEstimationPrompt(avgLength);
+    
+    // Estimate cost for all chapters
+    const estimate = adapter.estimateCost(estimationPrompt, model);
+    
+    // Multiply by number of chapters for total estimate
+    return estimate.totalCost * chapterContents.length;
   },
-
+  
   process: async (fullTranscript, chapterContents, model) => {
     // Get the appropriate adapter for this model
     const adapter = getAdapterForModel(model);
@@ -139,19 +139,16 @@ export const topicsProcessor: AIActionProcessor = {
       const options = configureJsonResponseOptions();
       
       // Process the prompt with configured options
-      const response = await adapter.processPrompt(prompt, model, options, {
+      const response = await adapter.processPromptToJSON<TopicItem[]>(prompt, model, options, {
         action: 'topics',
         enableCaching: cachingEnabled, // Use the user's caching preference
         videoId: 'unknown', // Add videoId for better tracking
         cacheTTL: 7 * 24 * 60 * 60 * 1000 // Cache for 7 days
       });
 
-      // Parse the response to extract topics
-      const topics = parseTopicsResponse(response);
-
       return {
         title: chapter.title,
-        topics,
+        topics: response.json,
         cost: response.cost.totalCost
       } as ChapterTopics & { cost: number };
     });

@@ -51,7 +51,7 @@ export function combineTranscriptAndChapters(
   
   // Calculate transcript duration and video duration
   const lastTranscriptItem = transcript[transcript.length - 1];
-  const transcriptDuration = (lastTranscriptItem.offset + lastTranscriptItem.duration) / 1000; // in seconds
+  const transcriptDuration = lastTranscriptItem.end_seconds; // in seconds
   
   // Calculate video duration from chapters (excluding MAX_SAFE_INTEGER)
   const videoDuration = offsetAdjustedChapters[offsetAdjustedChapters.length - 1].startTime + 300; // Add 5 minutes as a reasonable estimate
@@ -65,7 +65,7 @@ export function combineTranscriptAndChapters(
   
   // Convert transcript offsets from milliseconds to seconds for comparison
   transcript.forEach((item, index) => {
-    const itemTimeSeconds = item.offset / 1000;
+    const itemTimeSeconds = item.start_seconds;
     let targetChapterIndex = -1;
     
     // Special handling for test data - map based on specific time ranges
@@ -99,7 +99,7 @@ export function combineTranscriptAndChapters(
       // Normal processing for non-test data
       if (useProportionalMapping) {
         // Use proportional mapping - map transcript position to video position
-        const relativePosition = item.offset / (lastTranscriptItem.offset || 1);
+        const relativePosition = item.start_seconds / (lastTranscriptItem.end_seconds || 1);
         const estimatedVideoPosition = relativePosition * videoDuration;
         
         // Find the chapter that contains this position

@@ -1,5 +1,5 @@
-import { getAdapterForModel, parseJsonFromMarkdown } from '../../adapters/modelUtils';
-import { AIModelAdapter } from '../../adapters/types';
+import { getAdapterForModel } from '../../adapters/modelUtils';
+import { AIModelAdapter, AIModelJSONOptions } from '../../adapters/types';
 import { AIActionProcessor, AIProcessingResult } from '../types';
 import { KeyTakeawayParams, TakeawayItem } from './types';
 import { prompts } from './prompts';
@@ -55,21 +55,20 @@ const processChapterToPlainText = async (
   cachingOptions: Record<string, unknown>
 ): Promise<string> => {
   try {
-    // Create the prompt for this chapter
+    // Create the prompt for extracting plain text recommendations
     const prompt = generateChapterRecommendationsPrompt(chapterTitle, chapterContent);
-
-    // Process the prompt
-    const response = await adapter.processPrompt(prompt, model, {}, {
+    
+    // Process the prompt to get plain text recommendations
+    const response = await adapter.processPromptToText(prompt, model, {}, {
       videoId: cachingOptions.videoId as string,
-      action: cachingOptions.action as string,
+      action: `${cachingOptions.action as string}_chapter`,
       enableCaching: cachingOptions.enableCaching as boolean,
       cacheTTL: cachingOptions.cacheTTL as number
     });
-
-    // Return the plain text response
-    return response.text || '';
+    
+    return response.text;
   } catch (error) {
-    console.error(`Error processing chapter "${chapterTitle}":`, error);
+    console.error(`Error processing chapter "${chapterTitle}" to plain text:`, error);
     return '';
   }
 };
@@ -92,9 +91,8 @@ const generateStructuredRecommendations = async (
     // Create the prompt for generating structured recommendations
     const prompt = generateStructuredRecommendationsPrompt(combinedRecommendations);
 
-    // Process the prompt with JSON response type
-    const response = await adapter.processPrompt(prompt, model, {
-      isJSON: true,
+    // Configure JSON options
+    const options: AIModelJSONOptions = {
       responseSchema: {
         type: 'array',
         items: {
@@ -108,30 +106,19 @@ const generateStructuredRecommendations = async (
           required: ['emoji', 'recommendation', 'details', 'mechanism']
         }
       }
-    }, {
+    };
+
+    // Process the prompt with JSON response type
+    const response = await adapter.processPromptToJSON<TakeawayItem[]>(prompt, model, options, {
       videoId: cachingOptions.videoId as string,
       action: cachingOptions.action as string,
       enableCaching: cachingOptions.enableCaching as boolean,
       cacheTTL: cachingOptions.cacheTTL as number
     });
 
-    // If we have parsedJson from the adapter, use it directly
-    if (response.parsedJson && Array.isArray(response.parsedJson)) {
-      // Validate the structure of each takeaway
-      return response.parsedJson.map((takeaway: TakeawayItem) => ({
-        emoji: takeaway.emoji || '✅',
-        recommendation: takeaway.recommendation || 'Specific recommendation',
-        details: takeaway.details || '',
-        mechanism: takeaway.mechanism || ''
-      }));
-    }
-
-    // Fallback to our custom JSON parser if the adapter didn't parse it
-    const parsedTakeaways = parseJsonFromMarkdown<TakeawayItem[]>(response.text);
-
-    if (parsedTakeaways && parsedTakeaways.length > 0) {
-      // Validate the structure of each takeaway
-      return parsedTakeaways.map(takeaway => ({
+    // Validate the structure of each takeaway
+    if (response.json && Array.isArray(response.json)) {
+      return response.json.map((takeaway: TakeawayItem) => ({
         emoji: takeaway.emoji || '✅',
         recommendation: takeaway.recommendation || 'Specific recommendation',
         details: takeaway.details || '',
@@ -183,6 +170,9 @@ export const keyTakeawayProcessor: AIActionProcessor = {
       videoId: (params.type === ACTION_TYPES.KEYTAKEAWAY ? (params as KeyTakeawayParams).videoId : undefined) || 'unknown',
       cacheTTL: 7 * 24 * 60 * 60 * 1000 // Cache for 7 days
     };
+
+    // console.log({ chapterContents, cachingOptions, model });
+
 
     // Step 1: Process each chapter to extract plain text recommendations
     const chapterRecommendations = await Promise.all(
