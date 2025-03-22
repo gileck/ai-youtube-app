@@ -94,7 +94,7 @@ const generateStructuredRecommendations = async (
 
     // Process the prompt with JSON response type
     const response = await adapter.processPrompt(prompt, model, {
-      responseType: 'json',
+      isJSON: true,
       responseSchema: {
         type: 'array',
         items: {

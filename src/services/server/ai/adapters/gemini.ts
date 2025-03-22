@@ -1,42 +1,46 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { AIModelCostEstimate, AIModelOptions, AIModelResponse } from './types';
+import { AIModelOptions, AIModelResponse } from './types';
 import { GEMINI_MODELS, AIModelDefinition } from '../../../../types/shared/models';
 import { SpecificModelAdapter } from './specificModelAdapter';
 
 export class GeminiAdapter implements SpecificModelAdapter {
   private genAI: GoogleGenerativeAI;
   name = 'gemini';
-  
+
   constructor() {
     // Get API key from environment variable
     const apiKey = process.env.GEMINI_API_KEY;
-    
+
     if (!apiKey) {
       throw new Error('Gemini API key not found in environment variables');
     }
-    
+
     this.genAI = new GoogleGenerativeAI(apiKey);
   }
-  
+
   getAvailableModels(): AIModelDefinition[] {
     return GEMINI_MODELS;
   }
-  
-  // Pure function to estimate token count from text based on model
-  private estimateTokenCount(text: string, modelId?: string): number {
-    // Different models might have different token counting characteristics
-    if (modelId && modelId.includes('gemini-1.5')) {
-      // Gemini 1.5 models use approximately 4.5 chars per token
-      return Math.ceil(text.length / 4.5);
-    }
-    
-    // Default Gemini token estimation (approximately 5 chars per token)
-    return Math.ceil(text.length / 5);
+
+  // Estimate token count from text based on model
+  public estimateTokenCount(text: string, _modelId?: string): number {
+    // Simple estimation: ~4 characters per token for most models
+    // This is a rough estimate; for production, consider using a proper tokenizer
+    // For Gemini, we'll use a slightly different ratio than OpenAI
+    return Math.ceil(text.length / 3.5);
   }
-  
+
+  // Get model by ID
+  public getModelById(modelId: string): AIModelDefinition {
+    const model = GEMINI_MODELS.find(m => m.id === modelId);
+    if (!model) {
+      throw new Error(`Unknown Gemini model: ${modelId}`);
+    }
+    return model;
+  }
+
   // Map model IDs to actual API model names if needed
-  private mapModelIdToApiId(modelId: string): string {
-    // Map our model IDs to the actual API model IDs
+  mapModelIdToApiId(modelId: string): string {
     switch (modelId) {
       case 'gemini-1.5-flash-8b':
         return 'gemini-1.5-flash';
@@ -44,127 +48,108 @@ export class GeminiAdapter implements SpecificModelAdapter {
         return modelId;
     }
   }
-  
-  // Estimate cost based on input text and expected output
-  estimateCost(inputText: string, modelId: string, expectedOutputTokens?: number): AIModelCostEstimate {
-    // Get the model definition from shared models
-    const model = GEMINI_MODELS.find(m => m.id === modelId);
-    if (!model) {
-      throw new Error(`Unknown Gemini model: ${modelId}`);
-    }
-    
-    // Estimate input tokens based on model
-    const inputTokens = this.estimateTokenCount(inputText, modelId);
-    
-    // If expected output tokens not provided, estimate based on input length
-    const estimatedOutputTokens = expectedOutputTokens || Math.ceil(inputTokens * 0.3);
-    
-    // Calculate costs using the pricing from the shared model definition
-    const inputCost = (inputTokens / 1000) * model.inputCostPer1KTokens;
-    const outputCost = (estimatedOutputTokens / 1000) * model.outputCostPer1KTokens;
-    
-    return {
-      inputTokens,
-      estimatedOutputTokens,
-      inputCost,
-      outputCost,
-      totalCost: inputCost + outputCost,
-      model: modelId
-    };
+
+  // Get the estimated output ratio for a specific model
+  getEstimatedOutputRatio(_modelId: string): number {
+    // For Gemini models, we estimate output tokens to be about 30% of input tokens
+    // This can be adjusted based on empirical data for each model
+    return 0.3;
   }
-  
+
   // Make the actual API call to the Gemini model
   async makeModelAPICall(
-    prompt: string, 
-    modelId: string, 
+    prompt: string,
+    modelId: string,
     options?: AIModelOptions
   ): Promise<Omit<AIModelResponse, 'isCached'>> {
-    // Get model by ID for cost calculation
-    const model = GEMINI_MODELS.find(m => m.id === modelId);
-    if (!model) {
-      throw new Error(`Unknown Gemini model: ${modelId}`);
-    }
-    
-    // Map model IDs to actual API model names if needed
-    const apiModelId = this.mapModelIdToApiId(modelId);
-    
-    // Create the generative model instance
-    const geminiModel = this.genAI.getGenerativeModel({ model: apiModelId });
-    
-    // Configure generation options
-    const generationConfig = {
-      temperature: options?.temperature || 0.7,
-      maxOutputTokens: options?.maxTokens || Math.min(model.maxTokens, 2000),
-      topP: options?.topP || 1
+    // Default options
+    const defaultOptions = {
+      maxTokens: 1000
     };
 
-    // Modify prompt for JSON response if requested
-    let modifiedPrompt = prompt;
-    if (options?.responseType === 'json') {
-      // Add instructions for JSON response
-      const schemaInstructions = options?.responseSchema 
-        ? `\n\nRespond with a valid JSON object that follows this schema: ${JSON.stringify(options.responseSchema)}` 
-        : '\n\nRespond with a valid JSON object.';
-      
-      modifiedPrompt = `${prompt}${schemaInstructions}\n\nYour response must be a valid, parseable JSON with no additional text, markdown formatting, or explanations.`;
+    // Merge with provided options
+    const mergedOptions = {
+      ...defaultOptions,
+      ...options
+    };
+
+    // Get the actual API model ID
+    const apiModelId = this.mapModelIdToApiId(modelId);
+
+    // Configure generation settings
+    const generationConfig: Record<string, unknown> = {
+      maxOutputTokens: mergedOptions.maxTokens,
+      temperature: 0.7 // Default temperature
+    };
+
+    // Set response MIME type for JSON responses when isJSON is true
+    if (mergedOptions.isJSON === true) {
+      generationConfig.responseMimeType = 'application/json';
     }
 
-    // Make the API call with proper error handling
-    const result = await geminiModel.generateContent({
-      contents: [{ role: 'user', parts: [{ text: modifiedPrompt }] }],
+    // Get the model for the Gemini API
+    const model = this.genAI.getGenerativeModel({
+      model: apiModelId,
       generationConfig
     });
-    
-    // Extract response text
-    const response = result.response;
-    const text = response.text();
-    
-    // Parse JSON if requested
-    let parsedJson;
-    if (options?.responseType === 'json') {
-      try {
-        // Clean the response text to remove markdown formatting
-        let cleanedText = text;
-        
-        // Remove markdown code blocks (```json ... ```)
-        const jsonBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-        if (jsonBlockMatch && jsonBlockMatch[1]) {
-          cleanedText = jsonBlockMatch[1].trim();
+
+    try {
+      // Make the API call
+      const result = await model.generateContent(prompt);
+      const response = result.response;
+
+      // Extract the text from the response
+      const responseText = response.text();
+
+      // Parse JSON if requested
+      let parsedJson: Record<string, unknown> | undefined;
+      if (mergedOptions.isJSON === true && responseText) {
+        try {
+          parsedJson = JSON.parse(responseText);
+        } catch (e) {
+          console.error('Failed to parse JSON response:', e);
         }
-        
-        // Parse the cleaned JSON
-        parsedJson = JSON.parse(cleanedText);
-      } catch (error) {
-        console.warn('Failed to parse JSON response from Gemini:', error);
       }
+
+      // Get token usage from response (if available)
+      // Note: Gemini API might not provide detailed token usage in all cases
+      // Since the Gemini API response structure might vary, we'll use a safe approach
+      // to extract token count or estimate it if not available
+      const promptFeedback = response.promptFeedback as Record<string, unknown> | undefined;
+      const promptTokens = promptFeedback ?
+        // Use any available token count information or estimate
+        (promptFeedback.tokenCount as number) || this.estimateTokenCount(prompt) :
+        this.estimateTokenCount(prompt);
+      const completionTokens = Math.ceil(responseText.length / 3.5); // Estimate completion tokens
+      const totalTokens = promptTokens + completionTokens;
+
+      // Get the model for pricing
+      const modelDef = this.getModelById(modelId);
+
+      // Calculate costs
+      const inputCost = (promptTokens / 1000) * modelDef.inputCostPer1KTokens;
+      const outputCost = (completionTokens / 1000) * modelDef.outputCostPer1KTokens;
+
+      // Return the formatted response
+      return {
+        text: responseText,
+        parsedJson,
+        usage: {
+          promptTokens,
+          completionTokens,
+          totalTokens
+        },
+        cost: {
+          inputCost,
+          outputCost,
+          totalCost: inputCost + outputCost
+        },
+        model: modelId,
+        provider: this.name
+      };
+    } catch (error) {
+      console.error('Gemini API call failed:', error);
+      throw error;
     }
-    
-    // Estimate tokens if not provided by API
-    const inputTokens = this.estimateTokenCount(prompt, modelId);
-    const outputTokens = this.estimateTokenCount(text, modelId);
-    
-    // Calculate cost
-    const inputCost = (inputTokens / 1000) * model.inputCostPer1KTokens;
-    const outputCost = (outputTokens / 1000) * model.outputCostPer1KTokens;
-    const totalCost = inputCost + outputCost;
-    
-    // Return the formatted response
-    return {
-      text,
-      ...(parsedJson !== undefined && { parsedJson }),
-      usage: {
-        promptTokens: inputTokens,
-        completionTokens: outputTokens,
-        totalTokens: inputTokens + outputTokens
-      },
-      cost: {
-        inputCost,
-        outputCost,
-        totalCost
-      },
-      model: modelId,
-      provider: 'gemini',
-      videoTitle: undefined // Will be populated if needed
-    };
   }
 }

@@ -34,14 +34,36 @@ export class BaseModelAdapter implements AIModelAdapter {
   
   /**
    * Estimate cost based on input text and expected output
-   * Delegates to the specific adapter for model-specific pricing
+   * Uses common logic but delegates model-specific details to the specific adapter
    */
   estimateCost(
     inputText: string, 
     modelId: string, 
     expectedOutputTokens?: number
   ): AIModelCostEstimate {
-    return this.specificAdapter.estimateCost(inputText, modelId, expectedOutputTokens);
+    // Get the model definition from the specific adapter
+    const model = this.specificAdapter.getModelById(modelId);
+    
+    // Estimate input tokens based on model using the specific adapter's method
+    const inputTokens = this.specificAdapter.estimateTokenCount(inputText, modelId);
+    
+    // If expected output tokens not provided, estimate based on input length
+    // Use the specific adapter's output ratio estimation
+    const outputRatio = this.specificAdapter.getEstimatedOutputRatio(modelId);
+    const estimatedOutputTokens = expectedOutputTokens || Math.ceil(inputTokens * outputRatio);
+    
+    // Calculate costs using the pricing from the model definition
+    const inputCost = (inputTokens / 1000) * model.inputCostPer1KTokens;
+    const outputCost = (estimatedOutputTokens / 1000) * model.outputCostPer1KTokens;
+    
+    return {
+      inputTokens,
+      estimatedOutputTokens,
+      inputCost,
+      outputCost,
+      totalCost: inputCost + outputCost,
+      model: modelId
+    };
   }
   
   /**

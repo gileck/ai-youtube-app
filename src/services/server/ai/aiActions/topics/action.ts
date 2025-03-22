@@ -51,8 +51,7 @@ const configureJsonResponseOptions = (): AIModelOptions => {
 
   // Return unified configuration for all models
   return {
-    temperature: 0.5,
-    responseType: 'json',
+    isJSON: true,
     responseSchema: topicsSchema
   };
 };

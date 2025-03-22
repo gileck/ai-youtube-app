@@ -6,21 +6,21 @@ import { AIModelDefinition } from '../../../../types/shared/models';
 
 export interface AIModelAdapter {
   name: string;
-  
+
   // Get available models for this adapter
   getAvailableModels: () => AIModelDefinition[];
-  
+
   // Estimate cost based on input text and expected output length
   estimateCost: (
-    inputText: string, 
-    modelId: string, 
+    inputText: string,
+    modelId: string,
     expectedOutputTokens?: number
   ) => AIModelCostEstimate;
-  
+
   // Process a prompt with the AI model
   processPrompt: (
-    prompt: string, 
-    modelId: string, 
+    prompt: string,
+    modelId: string,
     options?: AIModelOptions,
     metadata?: AIModelMetadata
   ) => Promise<AIModelResponse>;
@@ -42,13 +42,9 @@ export interface AIModelCostEstimate {
  * Options for AI model processing
  */
 export interface AIModelOptions {
-  temperature?: number;
   maxTokens?: number;
-  topP?: number;
-  frequencyPenalty?: number;
-  presencePenalty?: number;
-  responseType?: 'json' | 'text'; // Unified response type option
-  responseSchema?: object;       // Optional schema for structured responses
+  isJSON?: boolean;               // Flag to indicate if response should be JSON
+  responseSchema?: object;        // Optional schema for structured responses
 }
 
 /**

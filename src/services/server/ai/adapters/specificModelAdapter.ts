@@ -5,7 +5,7 @@
  */
 
 import { AIModelDefinition } from '../../../../types/shared/models';
-import { AIModelCostEstimate, AIModelOptions, AIModelResponse } from './types';
+import { AIModelOptions, AIModelResponse } from './types';
 
 export interface SpecificModelAdapter {
   name: string;
@@ -16,14 +16,20 @@ export interface SpecificModelAdapter {
   getAvailableModels: () => AIModelDefinition[];
   
   /**
-   * Estimate cost based on input text and expected output length
-   * This is model-specific pricing logic
+   * Get a specific model by ID
    */
-  estimateCost: (
-    inputText: string, 
-    modelId: string, 
-    expectedOutputTokens?: number
-  ) => AIModelCostEstimate;
+  getModelById: (modelId: string) => AIModelDefinition;
+  
+  /**
+   * Estimate token count from text based on model
+   */
+  estimateTokenCount: (text: string, modelId?: string) => number;
+  
+  /**
+   * Get the estimated output ratio for a specific model
+   * This is used to estimate output tokens based on input tokens
+   */
+  getEstimatedOutputRatio: (modelId: string) => number;
   
   /**
    * Make the actual API call to the model
