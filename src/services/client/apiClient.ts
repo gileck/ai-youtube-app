@@ -60,8 +60,8 @@ export class ApiClient {
     return this.apiRequest('/api/youtube/video', params);
   }
   
-  // AI API methods
-  async processVideo(params: { 
+  // AI API methods with generic type support
+  async processVideo<T = unknown>(params: { 
     videoId: string;
     action: string;
     model: string; 
@@ -69,7 +69,7 @@ export class ApiClient {
     approved?: boolean;
     skipCache?: boolean;
     params?: AIActionParams;
-  }): Promise<AIActionResponse> {
+  }): Promise<AIActionResponse<T>> {
     this.options.onApiCall();
     
     // For question action, ensure we have the question parameter

@@ -1,23 +1,26 @@
 'use client';
 
 import React from 'react';
-import { AIActionParams, AIResponse } from '../../../../../types/shared/ai';
+import { AIActionParams, AIResponse, KeyTakeawayResponse } from '../../../../../types/shared/ai';
 
-// Import action components and metadata
 import SummaryRenderer, { SummaryActionMeta } from '../summary/client/SummaryAction';
 import QuestionRenderer, { QuestionActionMeta } from '../question/client/QuestionAction';
 import KeypointsRenderer, { KeypointsActionMeta } from '../keypoints/client/KeypointsAction';
 import TopicsRenderer, { TopicsActionMeta } from '../topics/client/TopicsAction';
 import KeyTakeawayRenderer, { KeyTakeawayActionMeta } from '../keytakeaway/client/KeyTakeawayAction';
 
-// Define the props for all action renderers
+/**
+ * Define the props for all action renderers
+ */
 export interface ActionRendererProps {
   result: AIResponse;
   params?: AIActionParams;
   videoId?: string;
 }
 
-// Define the structure for action metadata
+/**
+ * Define the structure for action metadata
+ */
 export interface ActionMeta {
   key: string;
   label: string;
@@ -60,7 +63,7 @@ export const AI_ACTIONS: Record<string, {
     label: KeyTakeawayActionMeta.label,
     icon: KeyTakeawayActionMeta.icon,
     description: KeyTakeawayActionMeta.description,
-    renderResult: (props) => <KeyTakeawayRenderer {...props} videoId={props.videoId} />
+    renderResult: (props) => <KeyTakeawayRenderer result={props.result as KeyTakeawayResponse} videoId={props.videoId} />
   }
 };
 

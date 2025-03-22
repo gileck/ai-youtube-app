@@ -1,4 +1,5 @@
 // Shared types for monitoring AI API calls
+import { ApiResponse } from './api';
 
 export interface AICallMetrics {
   id: string;
@@ -31,14 +32,9 @@ export interface AIUsageSummary {
   callsByDate: Record<string, number>;
 }
 
-export interface AIMonitoringResponse {
-  success: boolean;
-  data?: {
-    calls: AICallMetrics[];
-    summary: AIUsageSummary;
-  };
-  error?: {
-    code: string;
-    message: string;
-  };
+export interface AIMonitoringData {
+  calls: AICallMetrics[];
+  summary: AIUsageSummary;
 }
+
+export type AIMonitoringResponse = ApiResponse<AIMonitoringData>;

@@ -1,145 +1,179 @@
 import { getAdapterForModel } from '../../adapters/modelUtils';
-import { AIActionProcessor, AIProcessingResult } from '../types';
-import { ChapterSummaryResult, SummaryParams, SummaryResponse } from './types';
+import { AIActionProcessor } from '../types';
+import { SummaryParams, SummaryResponse, ChapterSummaryResult } from './types';
 import { prompts } from './prompts';
+import { ChapterContent, AIProcessingResult } from '../../../../../types/shared/ai';
 
 /**
  * Generate a prompt for summarizing a chapter
  * @param chapterTitle The title of the chapter
  * @param chapterContent The content of the chapter
+ * @param maxLength Optional maximum length of the summary
  * @returns A formatted prompt string
  */
-const generateChapterSummaryPrompt = (chapterTitle: string, chapterContent: string): string => {
-  return prompts.chapterSummary
+const generateChapterSummaryPrompt = (
+  chapterTitle: string,
+  chapterContent: string,
+  maxLength?: number
+): string => {
+  let prompt = prompts.chapterSummary
     .replace('{{chapterTitle}}', chapterTitle)
     .replace('{{chapterContent}}', chapterContent);
+  
+  if (maxLength) {
+    prompt = prompt.replace('{{maxLength}}', maxLength.toString());
+  } else {
+    prompt = prompt.replace('{{maxLength}}', '150');
+  }
+  
+  return prompt;
 };
 
 /**
- * Generate a prompt for creating a final summary from chapter summaries
- * @param chapterSummariesText The combined text of all chapter summaries
- * @param maxLength Optional maximum length constraint for the summary
+ * Generate a prompt for the final summary
+ * @param chapterSummaries Array of chapter summaries
+ * @param maxLength Optional maximum length of the summary
  * @returns A formatted prompt string
  */
-const generateFinalSummaryPrompt = (chapterSummariesText: string, maxLength?: number): string => {
-  const maxLengthText = maxLength ? ` with a maximum length of ${maxLength} characters` : '';
+const generateFinalSummaryPrompt = (
+  chapterSummaries: ChapterSummaryResult[],
+  maxLength?: number
+): string => {
+  const summariesText = chapterSummaries
+    .map(chapter => `## ${chapter.title}\n${chapter.summary}`)
+    .join('\n\n');
   
-  return prompts.finalSummary
-    .replace('{{maxLengthText}}', maxLengthText)
-    .replace('{{chapterSummariesText}}', chapterSummariesText);
-};
-
-/**
- * Generate a placeholder prompt for cost estimation of the final summary
- * @param estimatedLength The estimated length of the chapter summaries
- * @param maxLength Optional maximum length constraint
- * @returns A formatted prompt string for estimation
- */
-const generateFinalSummaryEstimationPrompt = (estimatedLength: number, maxLength?: number): string => {
-  const adjustedLength = maxLength && maxLength < estimatedLength ? maxLength : estimatedLength;
+  let prompt = prompts.finalSummary.replace('{{chapterSummaries}}', summariesText);
   
-  return prompts.finalSummaryEstimation
-    .replace('{{estimatedLength}}', adjustedLength.toString());
+  if (maxLength) {
+    prompt = prompt.replace('{{maxLength}}', maxLength.toString());
+  } else {
+    prompt = prompt.replace('{{maxLength}}', '250');
+  }
+  
+  return prompt;
 };
 
 /**
  * Summary processor implementation
  */
-export const summaryProcessor: AIActionProcessor = {
+export const summaryProcessor: AIActionProcessor<SummaryParams, SummaryResponse> = {
   name: 'summary',
   
-  estimateCost: (fullTranscript, chapterContents, model, params) => {
+  estimateCost: (fullTranscript: string, chapterContents: ChapterContent[], model: string, params: SummaryParams): number => {
     // Get the appropriate adapter for this model
     const adapter = getAdapterForModel(model);
     
-    // Ensure params is of the correct type
-    const summaryParams = params as SummaryParams;
-    
     // Estimate cost for each chapter summary
-    const chapterCosts = chapterContents.map(chapter => {
-      const prompt = generateChapterSummaryPrompt(chapter.title, chapter.content);
+    const chapterCosts = chapterContents.map((chapter: ChapterContent) => {
+      // Create the prompt for this chapter
+      const prompt = generateChapterSummaryPrompt(
+        chapter.title,
+        chapter.content,
+        params.maxLength
+      );
+      
+      // Estimate cost
       return adapter.estimateCost(prompt, model).totalCost;
     });
     
+    // Create a placeholder prompt for final summary estimation
+    const finalSummaryPrompt = prompts.finalSummary
+      .replace('{{chapterSummaries}}', 'Chapter summaries placeholder'.repeat(chapterContents.length))
+      .replace('{{maxLength}}', (params.maxLength || 250).toString());
+    
     // Estimate cost for final summary
-    // We can't know the exact content of chapter summaries yet, so we estimate
-    const estimatedChapterSummariesLength = chapterContents.reduce(
-      (total, chapter) => total + Math.ceil(chapter.content.length * 0.2), 0
-    );
-    
-    // Get maxLength parameter if provided
-    const maxLength = summaryParams.maxLength;
-    
-    // Generate estimation prompt for final summary
-    const finalSummaryPrompt = generateFinalSummaryEstimationPrompt(
-      estimatedChapterSummariesLength, 
-      maxLength
-    );
-    
     const finalSummaryCost = adapter.estimateCost(finalSummaryPrompt, model).totalCost;
     
     // Return total estimated cost
-    return chapterCosts.reduce((total, cost) => total + cost, 0) + finalSummaryCost;
+    return chapterCosts.reduce((total: number, cost: number) => total + cost, 0) + finalSummaryCost;
   },
   
-  process: async (fullTranscript, chapterContents, model, params): Promise<AIProcessingResult<SummaryResponse>> => {
+  process: async (fullTranscript: string, chapterContents: ChapterContent[], model: string, params: SummaryParams): Promise<AIProcessingResult<SummaryResponse>> => {
     // Get the appropriate adapter for this model
     const adapter = getAdapterForModel(model);
     
-    // Ensure params is of the correct type
-    const summaryParams = params as SummaryParams;
+    // Track processing start time
+    const processingStartTime = Date.now();
     
-    // Create metadata for tracking and caching
-    const metadata = {
-      action: 'summary',
-      videoId: summaryParams.videoId || 'unknown',
-      enableCaching: true,
-      cacheTTL: 7 * 24 * 60 * 60 * 1000 // 7 days
-    };
+    // Get max length parameter or use default
+    const maxLength = params.maxLength;
     
-    // Process each chapter
-    const chapterPromises = chapterContents.map(async chapter => {
-      const prompt = generateChapterSummaryPrompt(chapter.title, chapter.content);
-      const response = await adapter.processPromptToText(prompt, model, undefined, metadata);
-      
-      return {
-        title: chapter.title,
-        summary: response.text,
-        cost: response.cost.totalCost
-      } as ChapterSummaryResult;
+    // Initialize total cost and cache status
+    let totalCost = 0;
+    let allCached = true;
+    let totalTokens = 0;
+    
+    // Process each chapter to generate summaries
+    const chapterPromises = chapterContents.map(async (chapter: ChapterContent) => {
+      try {
+        // Create the prompt for this chapter
+        const prompt = generateChapterSummaryPrompt(
+          chapter.title,
+          chapter.content,
+          maxLength
+        );
+        
+        // Process the prompt
+        const response = await adapter.processPromptToText(prompt, model);
+        
+        // Update cost tracking
+        totalCost += response.cost.totalCost;
+        if (!response.isCached) {
+          allCached = false;
+        }
+        if (response.usage) {
+          totalTokens += response.usage.totalTokens;
+        }
+        
+        // Return the chapter summary result
+        return {
+          title: chapter.title,
+          summary: response.text,
+          cost: response.cost.totalCost
+        };
+      } catch (error) {
+        console.error(`Error processing chapter "${chapter.title}":`, error);
+        return {
+          title: chapter.title,
+          summary: `Failed to generate summary for "${chapter.title}".`,
+          cost: 0
+        };
+      }
     });
     
     // Wait for all chapter summaries
     const chapterResults = await Promise.all(chapterPromises);
     
-    // Create final summary
-    const chapterSummariesText = chapterResults
-      .map(result => `Chapter: ${result.title}\nSummary: ${result.summary}`)
-      .join('\n\n');
+    // Generate final summary
+    const finalSummaryPrompt = generateFinalSummaryPrompt(chapterResults, maxLength);
+    const finalSummaryResponse = await adapter.processPromptToText(finalSummaryPrompt, model);
     
-    // Apply maxLength parameter if provided
-    const maxLength = summaryParams.maxLength;
-    const finalSummaryPrompt = generateFinalSummaryPrompt(chapterSummariesText, maxLength);
-    const finalSummaryResponse = await adapter.processPromptToText(finalSummaryPrompt, model, undefined, metadata);
+    // Update cost tracking
+    totalCost += finalSummaryResponse.cost.totalCost;
+    if (!finalSummaryResponse.isCached) {
+      allCached = false;
+    }
+    if (finalSummaryResponse.usage) {
+      totalTokens += finalSummaryResponse.usage.totalTokens;
+    }
     
-    // Calculate total cost
-    const totalCost = chapterResults.reduce(
-      (total, result) => total + result.cost, 0
-    ) + finalSummaryResponse.cost.totalCost;
+    // Calculate processing time
+    const processingTime = Date.now() - processingStartTime;
     
-    // Return structured result
+    // Return the complete summary response
     return {
       result: {
-        chapterSummaries: chapterResults.map(result => ({
-          title: result.title,
-          summary: result.summary
+        chapterSummaries: chapterResults.map(chapter => ({
+          title: chapter.title,
+          summary: chapter.summary
         })),
-        finalSummary: finalSummaryResponse.text,
-        isCached: false,
-        cost: totalCost
-      } as SummaryResponse,
+        finalSummary: finalSummaryResponse.text
+      },
       cost: totalCost,
-      isCached: finalSummaryResponse.isCached
+      isCached: allCached,
+      tokens: totalTokens,
+      processingTime
     };
   }
 };

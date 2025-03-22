@@ -29,7 +29,7 @@ Transcript:
 {{transcript}}`,
 
   // Prompt for generating structured recommendations from combined chapter recommendations
-  keytakeaway: `Based on the following extracted recommendations from the video titled "{{videoTitle}}", create a structured list of {{count}} most valuable and important recommendations.
+  keytakeaway: `Based on the following extracted recommendations from the video titled "{{videoTitle}}", create a structured list of {{count}} most valuable and important recommendations, organized by categories.
   The recommendations must be HIGHLY SPECIFIC and IMMEDIATELY ACTIONABLE.
   The recommendations should be relevant to the video title and subject.
   
@@ -41,7 +41,9 @@ IMPORTANT REQUIREMENTS:
 4. Include precise steps that someone could follow immediately
 5. Reference specific examples or case studies mentioned in the video
 6. If specific settings, parameters, or configurations are mentioned, include those exact details
-7. Extract EVERY actionable recommendation - don't limit yourself to a specific number
+7. Group similar recommendations into 2-5 meaningful categories
+8. Each category should have 2-5 recommendations
+9. Choose category names that are concise and descriptive
 
 For each recommendation:
 1. Include a relevant emoji that precisely matches the specific action
@@ -49,13 +51,19 @@ For each recommendation:
 3. Include highly detailed implementation instructions with specific measurements, timings, tools, or techniques
 4. Explain the precise mechanism behind why it works, including any scientific principles, research, or evidence mentioned
 
-Format your response as a JSON array with the following structure:
+Format your response as a JSON array of categories with the following structure:
 [
   {
-    "emoji": "relevant emoji",
-    "recommendation": "SPECIFIC one-liner action with exact details (keep it short)",
-    "details": "HIGHLY DETAILED implementation instructions with specific measurements, tools, or techniques",
-    "mechanism": "PRECISE explanation of why it works with specific scientific principles or evidence"
+    "name": "Category Name",
+    "takeaways": [
+      {
+        "emoji": "relevant emoji",
+        "recommendation": "SPECIFIC one-liner action with exact details (keep it short)",
+        "details": "HIGHLY DETAILED implementation instructions with specific measurements, tools, or techniques",
+        "mechanism": "PRECISE explanation of why it works with specific scientific principles or evidence"
+      },
+      ...
+    ]
   },
   ...
 ]

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getChaptersTranscripts } from '../../../services/server/content/chaptersTranscriptService';
+import { ChaptersTranscriptResponse } from '../../../types/shared/transcript';
 
 /**
  * Extract video ID from URL or use directly
@@ -33,9 +34,9 @@ export async function GET(request: NextRequest) {
     
     // Validate input
     if (!videoIdOrUrl) {
-      return NextResponse.json({ 
+      return NextResponse.json<ChaptersTranscriptResponse>({ 
         success: false, 
-        error: 'Missing videoId parameter' 
+        error: { message: 'Missing videoId parameter' }
       }, { status: 200 });
     }
     
@@ -48,16 +49,18 @@ export async function GET(request: NextRequest) {
     });
     
     // Return success response
-    return NextResponse.json({
+    return NextResponse.json<ChaptersTranscriptResponse>({
       success: true,
       data: combinedData
     }, { status: 200 });
   } catch (error) {
     // Return error response (still with 200 status code per guidelines)
-    return NextResponse.json({ 
+    return NextResponse.json<ChaptersTranscriptResponse>({ 
       success: false,
-      error: 'Failed to process video',
-      details: error instanceof Error ? error.message : String(error)
+      error: {
+        message: 'Failed to process video',
+        details: error instanceof Error ? error.message : String(error)
+      }
     }, { status: 200 });
   }
 }

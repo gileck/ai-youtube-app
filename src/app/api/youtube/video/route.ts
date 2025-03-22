@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 import { trackYouTubeApiCall, YOUTUBE_API_QUOTA_COSTS } from '../../../../services/server/monitoring/youtubeMetricsStore';
 import { getCachedResponse, cacheResponse } from '../../../../services/server/monitoring/metricsStore';
+import { YouTubeVideoDetails } from '../../../../types/shared/youtube';
 
 /**
  * Pure function to extract video ID from different YouTube URL formats
@@ -123,7 +124,7 @@ export async function GET(request: NextRequest) {
     const channelThumbnail = channelResponse.data.items[0]?.snippet?.thumbnails?.default?.url || null;
 
     // Format response
-    const videoDetails = {
+    const videoDetails: YouTubeVideoDetails = {
       id: video.id,
       title: snippet.title,
       description: snippet.description,
@@ -134,7 +135,8 @@ export async function GET(request: NextRequest) {
       viewCount: parseInt(statistics.viewCount || '0', 10),
       likeCount: parseInt(statistics.likeCount || '0', 10),
       commentCount: parseInt(statistics.commentCount || '0', 10),
-      duration: video.contentDetails.duration
+      duration: video.contentDetails.duration,
+      thumbnail: snippet.thumbnails?.high?.url || snippet.thumbnails?.default?.url || ''
     };
 
     const result = {
@@ -188,4 +190,3 @@ export async function GET(request: NextRequest) {
     }, { status: 200 });
   }
 }
-

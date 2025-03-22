@@ -1,10 +1,10 @@
 import { getAdapterForModel } from '../../adapters/modelUtils';
 import { AIModelAdapter, AIModelJSONOptions } from '../../adapters/types';
 import { AIActionProcessor } from '../types';
-import { KeyTakeawayParams, TakeawayItem } from './types';
+import { KeyTakeawayParams, TakeawayItem, TakeawayCategory } from './types';
 import { prompts } from './prompts';
 import { getSettings } from '../../../../../services/client/settingsClient';
-import { KeyTakeawayResponseData, AIProcessingResult } from '../../../../../types/shared/ai';
+import { AIProcessingResult, ChapterContent, KeyTakeawayResponseData } from '../../../../../types/shared/ai';
 
 /**
  * Generate a prompt for extracting plain text recommendations from a chapter
@@ -26,8 +26,8 @@ const generateChapterRecommendationsPrompt = (chapterTitle: string, transcript: 
  * @returns A formatted prompt string
  */
 const generateStructuredRecommendationsPrompt = (
-  recommendations: string, 
-  count: number = 10, 
+  recommendations: string,
+  count: number = 10,
   videoTitle: string = "Unknown Video"
 ): string => {
   return prompts.keytakeaway
@@ -88,7 +88,7 @@ const processChapterToPlainText = async (
  * @param combinedRecommendations The combined plain text recommendations
  * @param cachingOptions Caching options
  * @param videoTitle The title of the video
- * @returns Array of structured takeaway items
+ * @returns Array of categorized takeaway items
  */
 const generateStructuredRecommendations = async (
   adapter: AIModelAdapter,
@@ -96,7 +96,7 @@ const generateStructuredRecommendations = async (
   combinedRecommendations: string,
   cachingOptions: Record<string, unknown>,
   videoTitle: string
-): Promise<TakeawayItem[]> => {
+): Promise<TakeawayCategory[]> => {
   try {
     // Create the prompt for generating structured recommendations
     const prompt = generateStructuredRecommendationsPrompt(combinedRecommendations, 10, videoTitle);
@@ -108,31 +108,44 @@ const generateStructuredRecommendations = async (
         items: {
           type: 'object',
           properties: {
-            emoji: { type: 'string' },
-            recommendation: { type: 'string' },
-            details: { type: 'string' },
-            mechanism: { type: 'string' }
+            name: { type: 'string' },
+            takeaways: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  emoji: { type: 'string' },
+                  recommendation: { type: 'string' },
+                  details: { type: 'string' },
+                  mechanism: { type: 'string' }
+                },
+                required: ['emoji', 'recommendation', 'details', 'mechanism']
+              }
+            }
           },
-          required: ['emoji', 'recommendation', 'details', 'mechanism']
+          required: ['name', 'takeaways']
         }
       }
     };
 
     // Process the prompt with JSON response type
-    const response = await adapter.processPromptToJSON<TakeawayItem[]>(prompt, model, options, {
+    const response = await adapter.processPromptToJSON<TakeawayCategory[]>(prompt, model, options, {
       videoId: cachingOptions.videoId as string,
       action: cachingOptions.action as string,
       enableCaching: cachingOptions.enableCaching as boolean,
       cacheTTL: cachingOptions.cacheTTL as number
     });
 
-    // Validate the structure of each takeaway
+    // Validate the structure of each category and its takeaways
     if (response.json && Array.isArray(response.json)) {
-      return response.json.map((takeaway: TakeawayItem) => ({
-        emoji: takeaway.emoji || '✅',
-        recommendation: takeaway.recommendation || 'Specific recommendation',
-        details: takeaway.details || '',
-        mechanism: takeaway.mechanism || ''
+      return response.json.map((category: TakeawayCategory) => ({
+        name: category.name || 'Recommendations',
+        takeaways: category.takeaways.map((takeaway: TakeawayItem) => ({
+          emoji: takeaway.emoji || '✅',
+          recommendation: takeaway.recommendation || 'Specific recommendation',
+          details: takeaway.details || '',
+          mechanism: takeaway.mechanism || ''
+        }))
       }));
     }
 
@@ -146,7 +159,7 @@ const generateStructuredRecommendations = async (
 /**
  * Key Takeaway processor implementation
  */
-export const keyTakeawayProcessor: AIActionProcessor = {
+export const keyTakeawayProcessor: AIActionProcessor<KeyTakeawayParams, KeyTakeawayResponseData> = {
   name: 'keytakeaway',
 
   estimateCost: (fullTranscript, chapterContents, model) => {
@@ -161,12 +174,11 @@ export const keyTakeawayProcessor: AIActionProcessor = {
   },
 
   process: async (
-    fullTranscript,
-    chapterContents,
-    model,
-    params,
-    options: { skipCache?: boolean } = {}
-  ): Promise<AIProcessingResult> => {
+    fullTranscript: string,
+    chapterContents: ChapterContent[],
+    model: string,
+    params: KeyTakeawayParams
+  ): Promise<AIProcessingResult<KeyTakeawayResponseData>> => {
     // Get the appropriate adapter for this model
     const adapter = getAdapterForModel(model);
 
@@ -174,10 +186,10 @@ export const keyTakeawayProcessor: AIActionProcessor = {
     const { cachingEnabled } = getSettings();
 
     // Setup caching options
-    const keytakeawayParams = params as KeyTakeawayParams;
+    const keytakeawayParams = params;
     const cachingOptions = {
       action: 'keytakeaway',
-      enableCaching: options.skipCache ? false : cachingEnabled,
+      enableCaching: cachingEnabled,
       videoId: keytakeawayParams.videoId || 'unknown',
       cacheTTL: 7 * 24 * 60 * 60 * 1000 // Cache for 7 days
     };
@@ -243,7 +255,7 @@ export const keyTakeawayProcessor: AIActionProcessor = {
             // Return result with a single "Full Video" chapter
             const result = {
               result: {
-                takeaways: structuredRecsResponse,
+                categories: structuredRecsResponse,
                 isCached,
                 cost: 0, // Use 0 when actual cost is not available
                 tokens: 0, // Unknown token count
@@ -268,7 +280,7 @@ export const keyTakeawayProcessor: AIActionProcessor = {
       // If all else fails, return an empty result with consistent cost handling
       return {
         result: {
-          takeaways: [],
+          categories: [],
           isCached: false,
           cost: 0, // Use 0 for the total cost when actual cost is not available
           tokens: 0,
@@ -293,8 +305,8 @@ export const keyTakeawayProcessor: AIActionProcessor = {
 
     // Step 4: Generate structured recommendations from the combined text
     const recommendationCount = keytakeawayParams.count || 10;
-    
-    const structuredRecommendationsResponse = await adapter.processPromptToJSON<TakeawayItem[]>(
+
+    const structuredRecommendationsResponse = await adapter.processPromptToJSON<TakeawayCategory[]>(
       generateStructuredRecommendationsPrompt(combinedRecommendations, recommendationCount, videoTitle),
       model,
       {
@@ -303,12 +315,22 @@ export const keyTakeawayProcessor: AIActionProcessor = {
           items: {
             type: 'object',
             properties: {
-              emoji: { type: 'string' },
-              recommendation: { type: 'string' },
-              details: { type: 'string' },
-              mechanism: { type: 'string' }
+              name: { type: 'string' },
+              takeaways: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    emoji: { type: 'string' },
+                    recommendation: { type: 'string' },
+                    details: { type: 'string' },
+                    mechanism: { type: 'string' }
+                  },
+                  required: ['emoji', 'recommendation', 'details', 'mechanism']
+                }
+              }
             },
-            required: ['emoji', 'recommendation', 'details', 'mechanism']
+            required: ['name', 'takeaways']
           }
         }
       },
@@ -319,11 +341,14 @@ export const keyTakeawayProcessor: AIActionProcessor = {
     );
 
     // Extract data from the response
-    const structuredRecommendations = structuredRecommendationsResponse.json.map((takeaway: TakeawayItem) => ({
-      emoji: takeaway.emoji || '✅',
-      recommendation: takeaway.recommendation || 'Specific recommendation',
-      details: takeaway.details || '',
-      mechanism: takeaway.mechanism || ''
+    const structuredCategories = structuredRecommendationsResponse.json.map((category: TakeawayCategory) => ({
+      name: category.name || 'Recommendations',
+      takeaways: category.takeaways.map((takeaway: TakeawayItem) => ({
+        emoji: takeaway.emoji || '✅',
+        recommendation: takeaway.recommendation || 'Specific recommendation',
+        details: takeaway.details || '',
+        mechanism: takeaway.mechanism || ''
+      }))
     }));
 
     // Extract metadata from the response
@@ -335,7 +360,7 @@ export const keyTakeawayProcessor: AIActionProcessor = {
     // Create the response with the updated structure
     const response: AIProcessingResult<KeyTakeawayResponseData> = {
       result: {
-        takeaways: structuredRecommendations,
+        categories: structuredCategories,
       },
       cost: finalCost,
       isCached,

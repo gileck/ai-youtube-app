@@ -1,6 +1,12 @@
-// Summary action parameters
+/**
+ * Types for the Summary AI action
+ */
+
+import { ACTION_TYPES } from '../constants';
+
+// Parameters for the Summary action
 export interface SummaryParams {
-  type: 'summary';
+  type: typeof ACTION_TYPES.SUMMARY;
   maxLength?: number;
   videoId?: string; // Added videoId for tracking purposes
 }

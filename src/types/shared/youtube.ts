@@ -1,6 +1,7 @@
 /**
  * Shared YouTube data types for client and server
  */
+import { ApiResponse } from './api';
 
 // Video details type
 export interface YouTubeVideoDetails {
@@ -18,13 +19,5 @@ export interface YouTubeVideoDetails {
   thumbnail: string; // Added for consistency with history/bookmarks
 }
 
-// Common response format for YouTube API calls
-export interface YouTubeResponse<T> {
-  success: boolean;
-  data?: T;
-  error?: {
-    code: string;
-    message: string;
-    details?: unknown;
-  };
-}
+// YouTube API response type that extends the base ApiResponse
+export type YouTubeResponse<T> = ApiResponse<T>;

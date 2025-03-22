@@ -11,8 +11,6 @@
  * No need to modify this file or any other files in the project.
  */
 
-import { AIActionProcessor } from '../types';
-
 // Import action processors and constants from each action folder
 import summaryProcessor, { ACTION_TYPE as SUMMARY_TYPE } from './summary';
 import questionProcessor, { ACTION_TYPE as QUESTION_TYPE } from './question';
@@ -25,8 +23,20 @@ export { ACTION_TYPES } from './constants';
 export type { ActionType } from './constants';
 export { isValidActionType } from './constants';
 
+// Define a type for processor methods with proper typing
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ProcessorMethod = (...args: any[]) => any;
+
+// Use a base processor type that can work with any specific processor
+// Using a more generic type signature to accommodate all processor types
+type BaseAIActionProcessor = {
+  name: string;
+  estimateCost: ProcessorMethod;
+  process: ProcessorMethod;
+};
+
 // Map of action types to processors - automatically built from action modules
-export const processors: Record<string, AIActionProcessor> = {
+export const processors: Record<string, BaseAIActionProcessor> = {
   [SUMMARY_TYPE]: summaryProcessor,
   [QUESTION_TYPE]: questionProcessor,
   [KEYPOINTS_TYPE]: keypointsProcessor,
@@ -44,6 +54,6 @@ export const processors: Record<string, AIActionProcessor> = {
  * @param action Action type
  * @returns AI action processor or null if not found
  */
-export function createAIActionProcessor(action: string): AIActionProcessor | null {
+export function createAIActionProcessor(action: string): BaseAIActionProcessor | null {
   return processors[action] || null;
 }

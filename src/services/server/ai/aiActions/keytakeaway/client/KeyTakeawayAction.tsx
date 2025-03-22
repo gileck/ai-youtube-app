@@ -10,20 +10,20 @@ import {
   AccordionDetails,
   Paper,
   Button,
-  CircularProgress
+  CircularProgress,
+  Divider
 } from '@mui/material';
 import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import { AIResponse, KeyTakeawayResponseData } from '../../../../../../types/shared/ai';
-import { TakeawayItem } from '../types';
+import { KeyTakeawayResponse, KeyTakeawayResponseData, TakeawayCategory } from '../../../../../../types/shared/ai';
 import { useApiClient } from '../../../../../../contexts/ApiContext';
 import { useSettings } from '../../../../../../contexts/SettingsContext';
 import { ACTION_TYPES } from '../../../aiActions/constants';
 
 // Define the props for the renderer component
 export interface KeyTakeawayRendererProps {
-  result: AIResponse;
+  result: KeyTakeawayResponse;
   videoId?: string;
 }
 
@@ -34,61 +34,30 @@ export const KeyTakeawayRenderer: React.FC<KeyTakeawayRendererProps> = ({ result
   const { apiClient } = useApiClient();
   const { settings } = useSettings();
   const [loading, setLoading] = useState(false);
-  const [recommendations, setRecommendations] = useState<TakeawayItem[]>([]);
+  const [categories, setCategories] = useState<TakeawayCategory[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   // Parse the result when the component mounts or when the result changes
   React.useEffect(() => {
-    parseResult(result);
+    setCategories(result.categories);
   }, [result]);
 
-  // Parse the result into recommendations
-  const parseResult = (resultData: AIResponse) => {
-    let takeaways: TakeawayItem[] = [];
-    
-    try {
-      // Handle different possible result formats
-      if (typeof resultData === 'object' && resultData !== null) {
-        // Case 1: Direct KeyTakeawayResponseData object
-        if ('takeaways' in resultData && Array.isArray(resultData.takeaways)) {
-          takeaways = resultData.takeaways as TakeawayItem[];
-        }
-        // Case 2: AIResponse with result property containing KeyTakeawayResponseData
-        else if ('result' in resultData && resultData.result && typeof resultData.result === 'object') {
-          const resultObj = resultData.result as KeyTakeawayResponseData;
-          if ('takeaways' in resultObj && Array.isArray(resultObj.takeaways)) {
-            takeaways = resultObj.takeaways;
-          }
-        }
-      }
-      
-      // Set the recommendations state
-      setRecommendations(takeaways);
-      
-      // Clear any previous errors
-      setError(null);
-    } catch (error) {
-      console.error('Error parsing key takeaway result:', error);
-      setError('Failed to parse recommendations. Please try again.');
-    }
-  };
-  
   // Function to refresh the recommendations
   const handleRefresh = async () => {
     if (!videoId) {
       setError('Video ID is missing. Cannot refresh recommendations.');
       return;
     }
-    
+
     setLoading(true);
     setError(null);
-    
+
     try {
       if (!apiClient) {
         throw new Error('API client not available');
       }
-      
-      const response = await apiClient.processVideo({
+
+      const response = await apiClient.processVideo<KeyTakeawayResponseData>({
         videoId,
         action: ACTION_TYPES.KEYTAKEAWAY,
         model: settings.aiModel,
@@ -96,9 +65,9 @@ export const KeyTakeawayRenderer: React.FC<KeyTakeawayRendererProps> = ({ result
         skipCache: true,
         params: { type: ACTION_TYPES.KEYTAKEAWAY }
       });
-      
+
       if (response.success && response.data) {
-        parseResult(response.data.result);
+        setCategories(response.data.result.categories);
       } else {
         throw new Error(response.error?.message || 'Invalid response format');
       }
@@ -109,7 +78,7 @@ export const KeyTakeawayRenderer: React.FC<KeyTakeawayRendererProps> = ({ result
       setLoading(false);
     }
   };
-  
+
   // If there's an error, display it
   if (error) {
     return (
@@ -118,25 +87,31 @@ export const KeyTakeawayRenderer: React.FC<KeyTakeawayRendererProps> = ({ result
       </Typography>
     );
   }
-  
-  // If there are no recommendations, display a message
-  if (recommendations.length === 0) {
+
+  // If there are no categories or all categories are empty, display a message
+  if (categories.length === 0 || categories.every(category => category.takeaways.length === 0)) {
     return (
       <Typography>
         No actionable recommendations found in this video.
       </Typography>
     );
   }
-  
+
+  // Count total recommendations across all categories
+  const totalRecommendations = categories.reduce(
+    (total, category) => total + category.takeaways.length,
+    0
+  );
+
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant="h6">Key Actionable Recommendations</Typography>
         {videoId && (
-          <Button 
-            variant="outlined" 
-            size="small" 
-            startIcon={loading ? <CircularProgress size={16} /> : <RefreshIcon />} 
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={loading ? <CircularProgress size={16} /> : <RefreshIcon />}
             onClick={handleRefresh}
             disabled={loading}
           >
@@ -144,71 +119,95 @@ export const KeyTakeawayRenderer: React.FC<KeyTakeawayRendererProps> = ({ result
           </Button>
         )}
       </Box>
-      
+
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        {recommendations.length} specific recommendations found. Click on each recommendation to see more details.
+        {totalRecommendations} specific recommendations found in {categories.length} categories.
+        Click on each recommendation to see more details.
       </Typography>
-      
-      <List sx={{ width: '100%' }}>
-        {recommendations.map((recommendation, index) => (
-          <Paper 
-            key={`recommendation-${index}`} 
-            variant="outlined" 
-            sx={{ mb: 2, overflow: 'hidden' }}
-          >
-            <Accordion>
-              <AccordionSummary
-                expandIcon={<ExpandMoreIcon />}
-                aria-controls={`recommendation-${index}-content`}
-                id={`recommendation-${index}-header`}
-                sx={{ 
-                  '&:hover': { bgcolor: 'rgba(0, 0, 0, 0.04)' },
-                }}
+
+      {categories.map((category, categoryIndex) => (
+        <Box key={`category-${categoryIndex}`} sx={{ mb: 3 }}>
+          {/* Category Divider with Name */}
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+            <Divider sx={{ flexGrow: 1, mr: 2 }} />
+            <Typography
+              variant="subtitle1"
+              color="primary"
+              sx={{
+                fontWeight: 'medium',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                fontSize: '0.875rem'
+              }}
+            >
+              {category.name}
+            </Typography>
+            <Divider sx={{ flexGrow: 1, ml: 2 }} />
+          </Box>
+
+          {/* Takeaways for this category */}
+          <List sx={{ width: '100%' }}>
+            {category.takeaways.map((recommendation, index) => (
+              <Paper
+                key={`recommendation-${categoryIndex}-${index}`}
+                variant="outlined"
+                sx={{ mb: 2, overflow: 'hidden' }}
               >
-                <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                  <Typography 
-                    variant="h6" 
-                    sx={{ 
-                      mr: 1.5,
-                      fontSize: '1.5rem',
-                      lineHeight: 1
+                <Accordion>
+                  <AccordionSummary
+                    expandIcon={<ExpandMoreIcon />}
+                    aria-controls={`recommendation-${categoryIndex}-${index}-content`}
+                    id={`recommendation-${categoryIndex}-${index}-header`}
+                    sx={{
+                      '&:hover': { bgcolor: 'rgba(0, 0, 0, 0.04)' },
                     }}
                   >
-                    {recommendation.emoji}
-                  </Typography>
-                  <Typography 
-                    variant="subtitle1" 
-                    sx={{ 
-                      fontWeight: 'medium',
-                      flexGrow: 1
-                    }}
-                  >
-                    {recommendation.recommendation}
-                  </Typography>
-                </Box>
-              </AccordionSummary>
-              
-              <AccordionDetails sx={{ pt: 0 }}>
-                <Box>
-                  <Typography variant="subtitle2" color="primary" gutterBottom>
-                    Implementation Details:
-                  </Typography>
-                  <Typography variant="body2" paragraph sx={{ pl: 2 }}>
-                    {recommendation.details}
-                  </Typography>
-                  
-                  <Typography variant="subtitle2" color="primary" gutterBottom>
-                    Why It Works:
-                  </Typography>
-                  <Typography variant="body2" paragraph sx={{ pl: 2 }}>
-                    {recommendation.mechanism}
-                  </Typography>
-                </Box>
-              </AccordionDetails>
-            </Accordion>
-          </Paper>
-        ))}
-      </List>
+                    <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                      <Typography
+                        variant="h6"
+                        sx={{
+                          mr: 1.5,
+                          fontSize: '1.5rem',
+                          lineHeight: 1
+                        }}
+                      >
+                        {recommendation.emoji}
+                      </Typography>
+                      <Typography
+                        variant="subtitle1"
+                        sx={{
+                          fontWeight: 'medium',
+                          flexGrow: 1
+                        }}
+                      >
+                        {recommendation.recommendation}
+                      </Typography>
+                    </Box>
+                  </AccordionSummary>
+
+                  <AccordionDetails sx={{ pt: 0 }}>
+                    <Box>
+                      <Typography variant="subtitle2" color="primary" gutterBottom>
+                        Implementation Details:
+                      </Typography>
+                      <Typography variant="body2" paragraph sx={{ pl: 2 }}>
+                        {recommendation.details}
+                      </Typography>
+
+                      <Typography variant="subtitle2" color="primary" gutterBottom>
+                        Why It Works:
+                      </Typography>
+                      <Typography variant="body2" paragraph sx={{ pl: 2 }}>
+                        {recommendation.mechanism}
+                      </Typography>
+                    </Box>
+                  </AccordionDetails>
+                </Accordion>
+              </Paper>
+            ))}
+          </List>
+        </Box>
+      ))}
     </Box>
   );
 };

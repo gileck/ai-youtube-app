@@ -45,9 +45,13 @@ export interface TakeawayItem {
   mechanism: string;
 }
 
-export interface KeyTakeawayResponseData {
+export interface TakeawayCategory {
+  name: string;
   takeaways: TakeawayItem[];
+}
 
+export interface KeyTakeawayResponseData {
+  categories: TakeawayCategory[];
 }
 
 // Base interface for all AI responses with metadata
@@ -59,7 +63,7 @@ export interface AIResponseBase {
 }
 
 // Generic response type that can handle any data structure
-export type AIResponse<T = unknown> = string | (T & AIResponseBase);
+export type AIResponse<T = unknown> = (T & AIResponseBase);
 
 // Type aliases for specific action responses
 export type SummaryResponse = AIResponse<SummaryResponseData>;
@@ -89,9 +93,9 @@ export interface AIActionResponse<T = unknown> {
     processingTime?: number;
   };
   error?: {
-    code: string;
+    code?: string;
     message: string;
-    details?: Record<string, unknown>;
+    details?: unknown;
   };
 }
 
@@ -109,7 +113,7 @@ export interface AIHistoryItem<T = unknown> {
 
 // Result of an AI processing operation
 export interface AIProcessingResult<T = unknown> {
-  result: AIResponse<T>;
+  result: T
   cost: number;
   isCached?: boolean;
   tokens?: number;
@@ -117,7 +121,7 @@ export interface AIProcessingResult<T = unknown> {
 }
 
 // Interface for all AI action processors
-export interface AIActionProcessor {
+export interface AIActionProcessor<Params extends AIActionParams, Result> {
   name: string;
 
   // Estimate cost of processing
@@ -125,7 +129,7 @@ export interface AIActionProcessor {
     fullTranscript: string,
     chapterContents: ChapterContent[],
     model: string,
-    params: AIActionParams
+    params: Params
   ) => number;
 
   // Process the action
@@ -133,7 +137,7 @@ export interface AIActionProcessor {
     fullTranscript: string,
     chapterContents: ChapterContent[],
     model: string,
-    params: AIActionParams,
+    params: Params,
     options?: { skipCache?: boolean }
-  ) => Promise<AIProcessingResult>;
+  ) => Promise<AIProcessingResult<Result>>;
 }

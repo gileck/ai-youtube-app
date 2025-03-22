@@ -10,7 +10,8 @@ import {
   getYouTubeApiSummary,
   clearYouTubeApiMetrics
 } from '../../../services/server/monitoring/youtubeMetricsStore';
-import { AIMonitoringResponse } from '../../../types/shared/monitoring';
+import { AIMonitoringResponse, AIMonitoringData } from '../../../types/shared/monitoring';
+import { ApiResponse } from '../../../types/shared/api';
 
 /**
  * GET handler for monitoring data
@@ -58,22 +59,24 @@ export async function GET() {
     const averageResponseTime = metrics.length > 0 ? totalDuration / metrics.length : 0;
     const successRate = metrics.length > 0 ? (successCount / metrics.length) * 100 : 100;
     
+    const monitoringData: AIMonitoringData = {
+      calls: metrics,
+      summary: {
+        totalCalls: metrics.length,
+        totalCost,
+        totalInputTokens,
+        totalOutputTokens,
+        averageResponseTime,
+        successRate,
+        costByModel,
+        costByAction,
+        callsByDate,
+      }
+    };
+    
     const response: AIMonitoringResponse = {
       success: true,
-      data: {
-        calls: metrics,
-        summary: {
-          totalCalls: metrics.length,
-          totalCost,
-          totalInputTokens,
-          totalOutputTokens,
-          averageResponseTime,
-          successRate,
-          costByModel,
-          costByAction,
-          callsByDate,
-        }
-      }
+      data: monitoringData
     };
     
     // Add cache statistics and YouTube metrics
@@ -89,7 +92,7 @@ export async function GET() {
   } catch (error) {
     console.error('Error fetching monitoring data:', error);
     
-    return NextResponse.json({
+    return NextResponse.json<ApiResponse<unknown>>({
       success: false,
       error: {
         code: 'FETCH_ERROR',
@@ -110,29 +113,29 @@ export async function POST(request: NextRequest) {
     
     if (action === 'clear_metrics') {
       clearMetrics();
-      return NextResponse.json({
+      return NextResponse.json<ApiResponse<{ message: string }>>({
         success: true,
-        message: 'Metrics cleared successfully'
+        data: { message: 'Metrics cleared successfully' }
       }, { status: 200 });
     }
     
     if (action === 'clear_cache') {
       clearCache();
-      return NextResponse.json({
+      return NextResponse.json<ApiResponse<{ message: string }>>({
         success: true,
-        message: 'Cache cleared successfully'
+        data: { message: 'Cache cleared successfully' }
       }, { status: 200 });
     }
     
     if (action === 'clear_youtube_metrics') {
       clearYouTubeApiMetrics();
-      return NextResponse.json({
+      return NextResponse.json<ApiResponse<{ message: string }>>({
         success: true,
-        message: 'YouTube metrics cleared successfully'
+        data: { message: 'YouTube metrics cleared successfully' }
       }, { status: 200 });
     }
     
-    return NextResponse.json({
+    return NextResponse.json<ApiResponse<unknown>>({
       success: false,
       error: {
         code: 'INVALID_ACTION',
@@ -143,7 +146,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error processing monitoring action:', error);
     
-    return NextResponse.json({
+    return NextResponse.json<ApiResponse<unknown>>({
       success: false,
       error: {
         code: 'PROCESSING_ERROR',

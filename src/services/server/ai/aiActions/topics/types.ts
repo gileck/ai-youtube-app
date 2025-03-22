@@ -2,6 +2,8 @@
  * Types for the Topics AI action
  */
 
+import { ACTION_TYPES } from '../constants';
+
 // Topic item with emoji and text
 export interface TopicItem {
   emoji: string;
@@ -22,5 +24,6 @@ export interface TopicsResponse {
 
 // Parameters for the Topics action
 export interface TopicsParams {
-  type: 'topics';
+  type: typeof ACTION_TYPES.TOPICS;
+  videoId?: string; // Optional video ID for tracking and caching
 }

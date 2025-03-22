@@ -22,5 +22,11 @@ export interface TakeawayItem {
   mechanism: string;
 }
 
+// Structure for a category of takeaways
+export interface TakeawayCategory {
+  name: string;
+  takeaways: TakeawayItem[];
+}
+
 // Response structure for the Key Takeaway action
 export type KeyTakeawayResponse = AIProcessingResult<KeyTakeawayResponseData>;

@@ -1,13 +1,17 @@
 /**
- * Types for the keypoints AI action
+ * Types for the Keypoints AI action
  */
 
-// Keypoints action parameters
+import { ACTION_TYPES } from '../constants';
+
+// Parameters for the Keypoints action
 export interface KeypointsParams {
-  type: 'keypoints';
-  count?: number;
+  type: typeof ACTION_TYPES.KEYPOINTS;
+  count?: number; // Optional number of keypoints to extract
   videoId?: string; // Optional video ID for tracking and caching
 }
 
-// Keypoints action response is a string with bullet points
-export type KeypointsResponse = string;
+// Response structure for keypoints
+export interface KeypointsResponse {
+  keypoints: string;
+}

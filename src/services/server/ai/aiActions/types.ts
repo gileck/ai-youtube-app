@@ -1,7 +1,7 @@
-import { ChapterContent, AIActionParams, AIProcessingResult as ProcessingResult, AIActionProcessor as ActionProcessor } from '../../../../types/shared/ai';
+import { ChapterContent, AIActionParams, AIProcessingResult as ProcessingResult } from '../../../../types/shared/ai';
 
 // Re-export with the same interface for backward compatibility
-export interface AIActionProcessor extends ActionProcessor {
+export interface AIActionProcessor<Params extends AIActionParams, Result> {
   name: string;
 
   // Estimate cost of processing
@@ -9,7 +9,7 @@ export interface AIActionProcessor extends ActionProcessor {
     fullTranscript: string,
     chapterContents: ChapterContent[],
     model: string,
-    params: AIActionParams
+    params: Params
   ) => number;
 
   // Process the action
@@ -17,8 +17,8 @@ export interface AIActionProcessor extends ActionProcessor {
     fullTranscript: string,
     chapterContents: ChapterContent[],
     model: string,
-    params: AIActionParams
-  ) => Promise<ProcessingResult>;
+    params: Params
+  ) => Promise<AIProcessingResult<Result>>;
 }
 
 // Re-export AIProcessingResult
