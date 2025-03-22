@@ -3,8 +3,9 @@ import { getChaptersTranscripts } from '../../../../services/server/content/chap
 import { createAIActionProcessor } from '../../../../services/server/ai/processorFactory';
 import { AIActionParams, ChapterContent } from '../../../../services/server/ai/types';
 import { isValidActionType } from '../../../../services/server/ai/aiActions/constants';
-import { apiConfig } from '../../apiConfig'
-export const config = apiConfig
+export const config = {
+  maxDuration: 60
+}
 /**
  * API route handler for AI actions
  * Handles all AI actions with a unified interface
