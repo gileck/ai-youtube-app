@@ -37,7 +37,7 @@ export default function VideoActions({ videoId, videoTitle }: VideoActionsProps)
   const { apiClient } = useApiClient();
   const [activeAction, setActiveAction] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<Record<string, unknown> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [approvalDialog, setApprovalDialog] = useState(false);
   const [estimatedCost, setEstimatedCost] = useState(0);
@@ -128,8 +128,8 @@ export default function VideoActions({ videoId, videoTitle }: VideoActionsProps)
         console.log('Response data cost:', responseCost);
         console.log('Response from cache:', isCached);
         
-        // Set the result without modifying its structure
-        setResult(response.data.result || null);
+        // Set the result with proper type casting
+        setResult(response.data.result ? (response.data.result as Record<string, unknown>) : null);
       }
 
       // Add to history
@@ -190,8 +190,8 @@ export default function VideoActions({ videoId, videoTitle }: VideoActionsProps)
         console.log('Response data cost after approval:', responseCost);
         console.log('Response from cache after approval:', isCached);
         
-        // Set the result without modifying its structure
-        setResult(response.data.result || null);
+        // Set the result with proper type casting
+        setResult(response.data.result ? (response.data.result as Record<string, unknown>) : null);
       }
       
       // Add to history

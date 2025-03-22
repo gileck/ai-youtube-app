@@ -57,54 +57,6 @@ const configureJsonResponseOptions = (): AIModelJSONOptions => {
 };
 
 /**
- * Parse the response from the AI model to extract topics
- * @param response The AI model response
- * @returns An array of topic items
- */
-const parseTopicsResponse = (response: any): TopicItem[] => {
-  // If we have pre-parsed JSON from the adapter, use it
-  if (response.json) {
-    const topics = response.json;
-    
-    // Validate that we got an array
-    if (!Array.isArray(topics)) {
-      console.warn('Expected array of topics but got:', typeof topics);
-      return [];
-    }
-    
-    return topics;
-  }
-  
-  // Fallback to parsing the text response if parsedJson is not available
-  try {
-    const topics = JSON.parse(response.text) as TopicItem[];
-    
-    // Validate that we got an array
-    if (!Array.isArray(topics)) {
-      console.warn('Expected array of topics but got:', typeof topics);
-      return [];
-    }
-    
-    return topics;
-  } catch (error) {
-    // Even with JSON mode, we might still get parsing errors in edge cases
-    console.error('Failed to parse topics response:', error);
-    
-    // As a fallback, try to extract JSON from the response if it contains other text
-    try {
-      const jsonMatch = response.text.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]) as TopicItem[];
-      }
-    } catch (fallbackError) {
-      console.error('Fallback JSON extraction also failed:', fallbackError);
-    }
-    
-    return [];
-  }
-};
-
-/**
  * Topics processor implementation
  */
 export const topicsProcessor: AIActionProcessor = {
@@ -125,7 +77,7 @@ export const topicsProcessor: AIActionProcessor = {
     return estimate.totalCost * chapterContents.length;
   },
   
-  process: async (fullTranscript, chapterContents, model) => {
+  async process(fullTranscript, chapterContents, model) {
     // Get the appropriate adapter for this model
     const adapter = getAdapterForModel(model);
     
@@ -173,7 +125,7 @@ export const topicsProcessor: AIActionProcessor = {
           title: result.title,
           topics: result.topics
         }))
-      } as any, // Type assertion to avoid property error
+      } as unknown as Record<string, unknown>,
       cost: totalCost,
       isCached: allCached
     };

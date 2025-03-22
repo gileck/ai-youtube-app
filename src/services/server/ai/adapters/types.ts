@@ -67,6 +67,8 @@ export interface AIModelOptions extends AIModelBaseOptions {
  * Options for text-based AI model processing
  */
 export interface AIModelTextOptions extends AIModelBaseOptions {
+  // Text-specific options can be added here in the future
+  temperature?: number;
 }
 
 /**

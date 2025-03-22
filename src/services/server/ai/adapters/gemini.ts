@@ -9,7 +9,6 @@ import {
 } from './types';
 import { GEMINI_MODELS, AIModelDefinition } from '../../../../types/shared/models';
 import { SpecificModelAdapter } from './specificModelAdapter';
-import fs from 'fs'
 
 export class GeminiAdapter implements SpecificModelAdapter {
   private genAI: GoogleGenerativeAI;
@@ -275,10 +274,6 @@ export class GeminiAdapter implements SpecificModelAdapter {
 
       // console.log('typeof responseText', typeof responseText);
       // console.log('Response Text:', responseText);
-
-      // Write response text to file
-      // fs.writeFileSync('responseText.txt', responseText);
-
 
       // Parse JSON
       let json: T;

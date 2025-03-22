@@ -1,4 +1,4 @@
-import { ChapterContent, AIActionParams, AIResponse, AIProcessingResult as ProcessingResult, AIActionProcessor as ActionProcessor } from '../../../../types/shared/ai';
+import { ChapterContent, AIActionParams, AIProcessingResult as ProcessingResult, AIActionProcessor as ActionProcessor } from '../../../../types/shared/ai';
 
 // Re-export with the same interface for backward compatibility
 export interface AIActionProcessor extends ActionProcessor {

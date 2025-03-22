@@ -4,7 +4,6 @@ import { AIActionProcessor } from '../types';
 import { KeyTakeawayParams, TakeawayItem } from './types';
 import { prompts } from './prompts';
 import { getSettings } from '../../../../../services/client/settingsClient';
-import { ACTION_TYPES } from '../constants';
 import { KeyTakeawayResponseData, AIProcessingResult } from '../../../../../types/shared/ai';
 
 /**

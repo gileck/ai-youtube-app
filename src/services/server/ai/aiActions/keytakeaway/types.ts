@@ -4,7 +4,7 @@
 
 import { ACTION_TYPES } from '../constants';
 import { AIProcessingResult } from '../types'
-import { TakeawayItem as SharedTakeawayItem, KeyTakeawayResponseData } from '../../../../../types/shared/ai';
+import { KeyTakeawayResponseData } from '../../../../../types/shared/ai';
 
 // Parameters for the Key Takeaway action
 export interface KeyTakeawayParams {
