@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchTranscript } from '../../../../services/server/youtube/transcriptService';
+import { youtubeTranscriptService } from '../../../../services/server/youtube/youtubeTranscriptService';
 
 /**
  * Extract video ID from URL or use directly
@@ -29,30 +30,50 @@ export async function GET(request: NextRequest) {
     // Parse request parameters
     const url = new URL(request.url);
     const videoIdOrUrl = url.searchParams.get('videoId') || '';
-    
+    const useYoutubei = true
+
     // Validate input
     if (!videoIdOrUrl) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Missing videoId parameter' 
+      return NextResponse.json({
+        success: false,
+        error: 'Missing videoId parameter'
       }, { status: 200 });
     }
-    
+
     // Extract video ID
     const videoId = extractVideoId(videoIdOrUrl);
-    
-    // Fetch raw transcript data
-    const transcript = await fetchTranscript(videoId);
-    
+
+    let transcript;
+
+    // Choose which method to use for fetching transcript
+    if (useYoutubei) {
+      // Use the new youtubei.js implementation
+      const response = await youtubeTranscriptService.getTranscriptSegments(videoId);
+
+      if (response.error) {
+        return NextResponse.json({
+          success: false,
+          error: response.error.message,
+          details: response.error.details
+        }, { status: 200 });
+      }
+
+      transcript = response.data;
+    } else {
+      // Use the original implementation
+      transcript = await fetchTranscript(videoId);
+    }
+
     // Return success response
     return NextResponse.json({
       success: true,
       videoId,
-      transcript
+      transcript,
+      method: useYoutubei ? 'youtubei.js' : 'youtube-transcript'
     }, { status: 200 });
   } catch (error) {
     // Return error response (with 200 status code per guidelines)
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: false,
       error: 'Failed to fetch transcript',
       details: error instanceof Error ? error.message : String(error)

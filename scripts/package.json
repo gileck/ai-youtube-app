@@ -1,0 +1,7 @@
+{
+  "name": "youtube-transcript-scripts",
+  "version": "1.0.0",
+  "description": "Scripts for fetching YouTube transcripts",
+  "type": "module",
+  "private": true
+}

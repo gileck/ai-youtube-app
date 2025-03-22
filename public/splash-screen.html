@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loading - YouTube AI Summarizer</title>
+    <link rel="stylesheet" href="/splash-screen.css">
+</head>
+<body>
+    <div id="splash-screen" class="splash-screen">
+        <img src="/icons/icon-192x192.png" alt="App Logo" class="splash-logo">
+        <h1 class="splash-title">YouTube AI Summarizer</h1>
+        <p class="splash-subtitle">Get AI-powered insights from any YouTube video</p>
+        <div class="splash-loading"></div>
+    </div>
+
+    <script>
+        // Hide splash screen when the app is loaded
+        window.addEventListener('load', function() {
+            // Give the app a little time to render
+            setTimeout(function() {
+                const splashScreen = document.getElementById('splash-screen');
+                if (splashScreen) {
+                    splashScreen.classList.add('hidden');
+                    // Remove it from the DOM after the transition
+                    setTimeout(function() {
+                        if (splashScreen && splashScreen.parentNode) {
+                            splashScreen.parentNode.removeChild(splashScreen);
+                        }
+                    }, 500);
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

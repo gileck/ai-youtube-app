@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { fetchTranscript, TranscriptItem } from '../../../../services/server/youtube/transcriptService';
-import { fetchChapters } from '../../../../services/server/youtube/chaptersService';
-import { combineTranscriptAndChapters } from '../../../../services/server/content/contentMappingService';
+import { getChaptersTranscripts } from '../../../../services/server/content/chaptersTranscriptService';
 import { createAIActionProcessor } from '../../../../services/server/ai/processorFactory';
-import { AIActionParams } from '../../../../services/server/ai/types';
+import { AIActionParams, ChapterContent } from '../../../../services/server/ai/types';
 import { isValidActionType } from '../../../../services/server/ai/aiActions/constants';
 
 /**
@@ -73,13 +71,11 @@ export async function POST(
       }, { status: 200 });
     }
 
-    // Fetch transcript and chapters in parallel
-    const [rawTranscript, chapters] = await Promise.all([
-      fetchTranscript(videoId),
-      fetchChapters(videoId)
-    ]);
+    // Use getChaptersTranscripts to fetch and combine transcript and chapters
+    const combinedData = await getChaptersTranscripts(videoId);
     
-    if (!rawTranscript || rawTranscript.length === 0) {
+    // Check if we have transcript data
+    if (!combinedData.chapters.length || combinedData.metadata.transcriptItemCount === 0) {
       return NextResponse.json({
         success: false,
         error: {
@@ -89,16 +85,16 @@ export async function POST(
       }, { status: 200 });
     }
     
-    // Create a fallback chapter if no chapters are available
-    const effectiveChapters = chapters.length > 0 
-      ? chapters 
-      : [{ title: 'Full Video', startTime: 0, endTime: Number.MAX_SAFE_INTEGER }];
+    // Map to ChapterContent[] format expected by the processor
+    const chapterContents: ChapterContent[] = combinedData.chapters.map(chapter => ({
+      title: chapter.title,
+      startTime: chapter.startTime,
+      endTime: chapter.endTime,
+      content: chapter.content
+    }));
     
-    // Combine transcript and chapters
-    const chapterContents = combineTranscriptAndChapters(rawTranscript, effectiveChapters);
-    
-    // Create full transcript text
-    const fullTranscript = rawTranscript.map((item: TranscriptItem) => item.text).join(' ');
+    // Create full transcript text from all chapters
+    const fullTranscript = chapterContents.map(chapter => chapter.content).join(' ');
     
     // Create typed action parameters
     const typedParams: AIActionParams = {
