@@ -3,7 +3,7 @@
  * Provides centralized caching and cost tracking logic
  */
 
-import { AIModelResponse, AIModelMetadata, AIModelBaseResponse, AIModelTextResponse, AIModelJSONResponse } from './types';
+import { AIModelMetadata, AIModelBaseResponse } from './types';
 import { trackAICall, cacheResponse, getCachedResponse } from '../../monitoring/metricsStore';
 
 // Define a type for cached result structure
@@ -84,7 +84,7 @@ export const processWithCaching = async <T extends AIModelBaseResponse>(
       };
       
       // Determine the type of response and add specific properties
-      const typedResponse: any = { ...baseResponse };
+      const typedResponse: Record<string, unknown> = { ...baseResponse, isCached: true };
       
       // Add text property if it exists (for AIModelResponse and AIModelTextResponse)
       if (cachedResult.text !== undefined) {
@@ -101,7 +101,7 @@ export const processWithCaching = async <T extends AIModelBaseResponse>(
         typedResponse.json = cachedResult.json;
       }
       
-      return typedResponse as T & { isCached: boolean };
+      return typedResponse as unknown as T & { isCached: boolean };
     }
   }
   
@@ -144,17 +144,17 @@ export const processWithCaching = async <T extends AIModelBaseResponse>(
       
       // Add text property if it exists (for AIModelResponse and AIModelTextResponse)
       if ('text' in result) {
-        cacheStructure.text = (result as any).text;
+        cacheStructure.text = typeof result.text === 'string' ? result.text : undefined;
       }
       
       // Add parsedJson property if it exists (for AIModelResponse)
-      if ('parsedJson' in result) {
-        cacheStructure.parsedJson = (result as any).parsedJson;
+      if ('parsedJson' in result && result.parsedJson !== undefined) {
+        cacheStructure.parsedJson = result.parsedJson as Record<string, unknown>;
       }
       
       // Add json property if it exists (for AIModelJSONResponse)
       if ('json' in result) {
-        cacheStructure.json = (result as any).json;
+        cacheStructure.json = result.json;
       }
       
       cacheResponse(cacheKey, cacheStructure, ttl, {

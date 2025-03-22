@@ -4,6 +4,7 @@ import { createAIActionProcessor } from '../../../../services/server/ai/processo
 import { AIActionParams, ChapterContent } from '../../../../services/server/ai/types';
 import { isValidActionType } from '../../../../services/server/ai/aiActions/constants';
 export const config = {
+  runtime: 'nodejs',
   maxDuration: 60
 }
 /**

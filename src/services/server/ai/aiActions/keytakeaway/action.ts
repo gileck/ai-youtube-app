@@ -1,11 +1,11 @@
 import { getAdapterForModel } from '../../adapters/modelUtils';
 import { AIModelAdapter, AIModelJSONOptions } from '../../adapters/types';
-import { AIActionProcessor, AIProcessingResult } from '../types';
+import { AIActionProcessor } from '../types';
 import { KeyTakeawayParams, TakeawayItem } from './types';
 import { prompts } from './prompts';
 import { getSettings } from '../../../../../services/client/settingsClient';
 import { ACTION_TYPES } from '../constants';
-import { KeyTakeawayResponseData } from '../../../../../types/shared/ai';
+import { KeyTakeawayResponseData, AIProcessingResult } from '../../../../../types/shared/ai';
 
 /**
  * Generate a prompt for extracting plain text recommendations from a chapter
@@ -229,20 +229,10 @@ export const keyTakeawayProcessor: AIActionProcessor = {
             // Return result with a single "Full Video" chapter
             const result = {
               result: {
-                chapters: [
-                  {
-                    title: 'Full Video',
-                    takeaways: structuredRecsResponse,
-                    isCached,
-                    cost: 0, // Use 0 when actual cost is not available
-                    tokens: 0, // Unknown token count
-                    processingTime
-                  }
-                ],
-                combinedTakeaways: structuredRecsResponse,
+                takeaways: structuredRecsResponse,
                 isCached,
-                cost: 0, // Use 0 for the total cost when actual cost is not available
-                tokens: 0,
+                cost: 0, // Use 0 when actual cost is not available
+                tokens: 0, // Unknown token count
                 processingTime
               },
               cost: 0, // Use 0 for the total cost when actual cost is not available
@@ -253,7 +243,7 @@ export const keyTakeawayProcessor: AIActionProcessor = {
 
             // Add a note in the console that we're using a placeholder cost
             console.log('No actual cost information available for this response. Using 0 as placeholder.');
-            
+
             return result;
           }
         }
@@ -264,12 +254,16 @@ export const keyTakeawayProcessor: AIActionProcessor = {
       // If all else fails, return an empty result with consistent cost handling
       return {
         result: {
-          chapters: [],
-          combinedTakeaways: [],
+          takeaways: [],
           isCached: false,
           cost: 0, // Use 0 for the total cost when actual cost is not available
           tokens: 0,
           processingTime: Date.now() - processingStartTime
+        } as KeyTakeawayResponseData & {
+          isCached: boolean;
+          cost: number;
+          tokens: number;
+          processingTime: number;
         },
         cost: 0, // Use 0 for the total cost when actual cost is not available
         isCached: false,
@@ -325,21 +319,9 @@ export const keyTakeawayProcessor: AIActionProcessor = {
     const processingTime = Date.now() - processingStartTime;
 
     // Create the response with the updated structure
-    const response: AIProcessingResult = {
+    const response: AIProcessingResult<KeyTakeawayResponseData> = {
       result: {
-        chapters: chaptersWithRecommendations.map(chapter => ({
-          title: chapter.title,
-          takeaways: structuredRecommendations,
-          isCached,
-          cost: finalCost,
-          tokens,
-          processingTime
-        })),
-        combinedTakeaways: structuredRecommendations,
-        isCached,
-        cost: finalCost,
-        tokens,
-        processingTime
+        takeaways: structuredRecommendations,
       },
       cost: finalCost,
       isCached,

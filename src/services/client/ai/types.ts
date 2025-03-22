@@ -14,7 +14,6 @@ export type {
   TopicsResponseData,
   KeypointItem,
   TakeawayItem,
-  KeyTakeawayChapter,
   TopicItem,
   // Export response type aliases
   SummaryResponse,
@@ -22,6 +21,7 @@ export type {
   KeypointsResponse,
   TopicsResponse,
   KeyTakeawayResponse,
+  KeyTakeawayResponseData,
   // Export base response interface
   AIResponseBase
 } from '../../../types/shared/ai';

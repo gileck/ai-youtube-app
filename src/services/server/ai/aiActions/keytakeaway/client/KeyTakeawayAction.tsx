@@ -15,7 +15,7 @@ import {
 import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import { AIResponse } from '../../../../../../types/shared/ai';
+import { AIResponse, KeyTakeawayResponseData } from '../../../../../../types/shared/ai';
 import { TakeawayItem } from '../types';
 import { useApiClient } from '../../../../../../contexts/ApiContext';
 import { useSettings } from '../../../../../../contexts/SettingsContext';
@@ -47,20 +47,17 @@ export const KeyTakeawayRenderer: React.FC<KeyTakeawayRendererProps> = ({ result
     let takeaways: TakeawayItem[] = [];
     
     try {
-      // Try to parse the result as an array of chapter takeaways or direct takeaways
-      if (Array.isArray(resultData) && resultData.length > 0) {
-        // If the first item has a takeaways property, it's a chapter takeaways array
-        if ('takeaways' in resultData[0] && Array.isArray(resultData[0].takeaways)) {
-          // Extract all takeaways from all chapters
-          takeaways = resultData[0].takeaways as TakeawayItem[];
+      // Handle different possible result formats
+      if (typeof resultData === 'object' && resultData !== null) {
+        // Case 1: Direct KeyTakeawayResponseData object
+        if ('takeaways' in resultData && Array.isArray(resultData.takeaways)) {
+          takeaways = resultData.takeaways as TakeawayItem[];
         }
-      } else if (resultData && typeof resultData === 'object') {
-        // If result has a direct result property that's an array
-        if ('result' in resultData && Array.isArray(resultData.result)) {
-          // Check if the result contains chapter takeaways
-          const firstItem = resultData.result[0];
-          if (firstItem && 'takeaways' in firstItem && Array.isArray(firstItem.takeaways)) {
-            takeaways = firstItem.takeaways as TakeawayItem[];
+        // Case 2: AIResponse with result property containing KeyTakeawayResponseData
+        else if ('result' in resultData && resultData.result && typeof resultData.result === 'object') {
+          const resultObj = resultData.result as KeyTakeawayResponseData;
+          if ('takeaways' in resultObj && Array.isArray(resultObj.takeaways)) {
+            takeaways = resultObj.takeaways;
           }
         }
       }

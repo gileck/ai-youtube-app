@@ -51,7 +51,7 @@ export interface AIModelCostEstimate {
 /**
  * Base options for AI model processing
  */
-export interface AIModelBaseOptions {
+export interface AIModelBaseOptions extends Record<string, unknown> {
   maxTokens?: number;
 }
 
@@ -59,22 +59,21 @@ export interface AIModelBaseOptions {
  * Options for AI model processing (legacy)
  */
 export interface AIModelOptions extends AIModelBaseOptions {
-  isJSON?: boolean;               // Flag to indicate if response should be JSON
-  responseSchema?: object;        // Optional schema for structured responses
+  isJSON?: boolean;
+  responseSchema?: object;
 }
 
 /**
  * Options for text-based AI model processing
  */
 export interface AIModelTextOptions extends AIModelBaseOptions {
-  // Text-specific options can be added here
 }
 
 /**
  * Options for JSON-based AI model processing
  */
 export interface AIModelJSONOptions extends AIModelBaseOptions {
-  responseSchema?: object;        // Optional schema for structured responses
+  responseSchema?: object;
 }
 
 /**

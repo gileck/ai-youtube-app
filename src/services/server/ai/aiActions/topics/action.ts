@@ -1,9 +1,10 @@
 import { getAdapterForModel } from '../../adapters/modelUtils';
-import { AIActionProcessor, AIProcessingResult } from '../types';
+import { AIActionProcessor } from '../types';
 import { AIModelJSONOptions } from '../../adapters/types';
 import { ChapterTopics, TopicItem } from './types';
 import { prompts } from './prompts';
 import { getSettings } from '../../../../../services/client/settingsClient';
+import { AIProcessingResult } from '../../../../../types/shared/ai';
 
 /**
  * Generate a prompt for extracting topics from a chapter
@@ -172,7 +173,7 @@ export const topicsProcessor: AIActionProcessor = {
           title: result.title,
           topics: result.topics
         }))
-      },
+      } as any, // Type assertion to avoid property error
       cost: totalCost,
       isCached: allCached
     };

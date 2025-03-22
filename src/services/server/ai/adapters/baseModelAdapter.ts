@@ -38,7 +38,7 @@ export class BaseModelAdapter implements AIModelAdapter {
   /**
    * Create a cache key for the request
    */
-  private createCacheKey(prompt: string, modelId: string, options?: any): string {
+  private createCacheKey(prompt: string, modelId: string, options?: Record<string, unknown>): string {
     return `${this.name}:${modelId}:${JSON.stringify(options)}:${prompt.substring(0, 100)}`;
   }
   

@@ -1,5 +1,5 @@
 import { getAdapterForModel } from '../../adapters/modelUtils';
-import { AIActionProcessor } from '../types';
+import { AIActionProcessor, AIProcessingResult } from '../types';
 import { ChapterSummaryResult, SummaryParams, SummaryResponse } from './types';
 import { prompts } from './prompts';
 
@@ -82,7 +82,7 @@ export const summaryProcessor: AIActionProcessor = {
     return chapterCosts.reduce((total, cost) => total + cost, 0) + finalSummaryCost;
   },
   
-  process: async (fullTranscript, chapterContents, model, params) => {
+  process: async (fullTranscript, chapterContents, model, params): Promise<AIProcessingResult<SummaryResponse>> => {
     // Get the appropriate adapter for this model
     const adapter = getAdapterForModel(model);
     
@@ -134,9 +134,12 @@ export const summaryProcessor: AIActionProcessor = {
           title: result.title,
           summary: result.summary
         })),
-        finalSummary: finalSummaryResponse.text
+        finalSummary: finalSummaryResponse.text,
+        isCached: false,
+        cost: totalCost
       } as SummaryResponse,
-      cost: totalCost
+      cost: totalCost,
+      isCached: finalSummaryResponse.isCached
     };
   }
 };

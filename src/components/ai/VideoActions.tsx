@@ -21,7 +21,7 @@ import {
 } from '@mui/material';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useApiClient } from '../../contexts/ApiContext';
-import { AIActionParams, AIResponse } from '../../services/client/ai/types';
+import { AIActionParams, AIActionResponse } from '../../services/client/ai/types';
 import { addHistoryItem } from '../../services/client/historyService';
 import { AI_ACTIONS } from '../../services/client/ai';
 import { ACTION_TYPES } from '../../services/server/ai/aiActions/constants';
@@ -37,14 +37,14 @@ export default function VideoActions({ videoId, videoTitle }: VideoActionsProps)
   const { apiClient } = useApiClient();
   const [activeAction, setActiveAction] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<AIResponse | null>(null);
+  const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [approvalDialog, setApprovalDialog] = useState(false);
   const [estimatedCost, setEstimatedCost] = useState(0);
   const [question, setQuestion] = useState('');
   const [questionDialog, setQuestionDialog] = useState(false);
   const [actionParams, setActionParams] = useState<AIActionParams | null>(null);
-  const [response, setResponse] = useState<any>(null);
+  const [response, setResponse] = useState<AIActionResponse<unknown> | null>(null);
 
   // Handle action button click
   const handleActionClick = async (action: string) => {

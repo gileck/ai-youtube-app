@@ -45,22 +45,9 @@ export interface TakeawayItem {
   mechanism: string;
 }
 
-export interface KeyTakeawayChapter {
-  title: string;
-  takeaways: Array<TakeawayItem>;
-  isCached?: boolean;
-  cost?: number;
-  tokens?: number;
-  processingTime?: number;
-}
-
 export interface KeyTakeawayResponseData {
-  chapters: KeyTakeawayChapter[];
-  combinedTakeaways: TakeawayItem[];
-  isCached?: boolean;
-  cost?: number;
-  tokens?: number;
-  processingTime?: number;
+  takeaways: TakeawayItem[];
+
 }
 
 // Base interface for all AI responses with metadata
@@ -72,7 +59,7 @@ export interface AIResponseBase {
 }
 
 // Generic response type that can handle any data structure
-export type AIResponse<T = any> = string | (T & AIResponseBase);
+export type AIResponse<T = unknown> = string | (T & AIResponseBase);
 
 // Type aliases for specific action responses
 export type SummaryResponse = AIResponse<SummaryResponseData>;
@@ -90,7 +77,7 @@ export interface ChapterContent {
 }
 
 // API response format for AI actions
-export interface AIActionResponse<T = any> {
+export interface AIActionResponse<T = unknown> {
   success: boolean;
   needApproval?: boolean;
   estimatedCost?: number;
@@ -109,7 +96,7 @@ export interface AIActionResponse<T = any> {
 }
 
 // History item for storing past AI actions
-export interface AIHistoryItem<T = any> {
+export interface AIHistoryItem<T = unknown> {
   id: string;
   videoId: string;
   videoTitle: string;
@@ -121,7 +108,7 @@ export interface AIHistoryItem<T = any> {
 }
 
 // Result of an AI processing operation
-export interface AIProcessingResult<T = any> {
+export interface AIProcessingResult<T = unknown> {
   result: AIResponse<T>;
   cost: number;
   isCached?: boolean;
@@ -132,7 +119,7 @@ export interface AIProcessingResult<T = any> {
 // Interface for all AI action processors
 export interface AIActionProcessor {
   name: string;
-  
+
   // Estimate cost of processing
   estimateCost: (
     fullTranscript: string,
@@ -140,7 +127,7 @@ export interface AIActionProcessor {
     model: string,
     params: AIActionParams
   ) => number;
-  
+
   // Process the action
   process: (
     fullTranscript: string,

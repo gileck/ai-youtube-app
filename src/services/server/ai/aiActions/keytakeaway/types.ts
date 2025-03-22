@@ -3,6 +3,8 @@
  */
 
 import { ACTION_TYPES } from '../constants';
+import { AIProcessingResult } from '../types'
+import { TakeawayItem as SharedTakeawayItem, KeyTakeawayResponseData } from '../../../../../types/shared/ai';
 
 // Parameters for the Key Takeaway action
 export interface KeyTakeawayParams {
@@ -19,21 +21,5 @@ export interface TakeawayItem {
   mechanism: string;
 }
 
-// Structure for chapter-based takeaways
-export interface ChapterTakeaways {
-  title: string;
-  takeaways: TakeawayItem[];
-  isCached?: boolean;
-  cost?: number;
-  tokens?: number;
-  processingTime?: number;
-}
-
 // Response structure for the Key Takeaway action
-export interface KeyTakeawayResponse {
-  result: ChapterTakeaways[];
-  cost: number;
-  isCached?: boolean;
-  tokens?: number;
-  processingTime?: number;
-}
+export type KeyTakeawayResponse = AIProcessingResult<KeyTakeawayResponseData>;
