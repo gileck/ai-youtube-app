@@ -32,11 +32,11 @@ export interface TranscriptResponse {
 export const formatTime = (seconds: number): string => {
   const minutes = Math.floor(seconds / 60);
   const remainingSeconds = Math.floor(seconds % 60);
-  
+
   // Format with leading zeros
   const formattedMinutes = String(minutes).padStart(2, '0');
   const formattedSeconds = String(remainingSeconds).padStart(2, '0');
-  
+
   return `${formattedMinutes}:${formattedSeconds}`;
 };
 
@@ -48,16 +48,16 @@ export const formatTime = (seconds: number): string => {
 export const fetchTranscriptWithYoutubei = async (videoId: string): Promise<TranscriptResponse> => {
   try {
     // Temporarily silence console.error to suppress YouTube.js parser errors
-    const originalConsoleError = console.error;
-    console.error = (...args: unknown[]) => {
+    const originalConsoleWarning = console.warn;
+    console.warn = (...args: unknown[]) => {
       const errorMessage = args.map(arg => String(arg)).join(' ');
-      if (errorMessage.includes('[YOUTUBEJS][Parser]') && 
-          errorMessage.includes('CompositeVideoPrimaryInfo not found')) {
+      if (errorMessage.includes('[YOUTUBEJS][Parser]') &&
+        errorMessage.includes('CompositeVideoPrimaryInfo not found')) {
         // Suppress this specific error
         return;
       }
       // Pass through all other errors
-      originalConsoleError(...args);
+      originalConsoleWarning(...args);
     };
 
     // Initialize the Innertube client
@@ -72,9 +72,9 @@ export const fetchTranscriptWithYoutubei = async (videoId: string): Promise<Tran
 
     // Get the transcript
     const transcriptInfo = await info.getTranscript();
-    
+
     // Restore original console.error
-    console.error = originalConsoleError;
+    console.warn = originalConsoleWarning;
 
     if (!transcriptInfo || !transcriptInfo.transcript || !transcriptInfo.transcript.content) {
       return {
@@ -129,7 +129,7 @@ export const fetchTranscriptWithYoutubei = async (videoId: string): Promise<Tran
       const endMs = typeof typedSegment.end_ms === 'string'
         ? parseInt(typedSegment.end_ms, 10)
         : (typeof typedSegment.end_ms === 'number' ? typedSegment.end_ms : 0);
-        
+
       // Convert milliseconds to seconds
       const startSeconds = startMs / 1000;
       const endSeconds = endMs / 1000;
