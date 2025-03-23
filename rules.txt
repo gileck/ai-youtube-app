@@ -1,0 +1,62 @@
+* Make sure to always check that all new functions are exported correctly and imported correctly. Validate that all new functions are exported correctly and imported correctly before finishing the task.
+
+** React Component Guidelines **
+
+* Never add functions to useEffect dependencies array without wrapping them in useCallback inside the component
+
+
+** Code Guidelines **
+
+* Never access external APIs from the client-side. Always access external APIs from the server-side using keys from .env file.
+* Always wrap external APIs with file system caching mechanism in the server-side for reducing cost/quate.
+* Make sure to never import server-side code from the client-side - especially when trying to share server-side and client-side logic. Always move the shared code to a shared file which can be imported from both server and client code. 
+* Never use export default, alwasy use named exports
+* All server-side code must be written as pure input/output small functions that are easy to debug and test.
+* Never combine business logic and side-effects in the same function.
+* Each function should have a single responsibility and avoid unnecessary complexity.
+* Separate concerns by keeping data fetching, processing, and response handling distinct.
+* Never intentionally return 500 or 404 status codes. Always return status code 200 and include proper error fields in the response if errors exist.
+* All code must use ES modules (import/export) for both client and server.
+* Not use classes in JavaScript. Use function factories to create objects, keeping private properties as variables within the factory.
+* Avoid general options parameters. Always pass explicit parameters to functions for clarity and maintainability.
+* Each function should perform one logical task, and the function name should clearly reflect its purpose.
+* Never make direct API calls to external libraries or external APIs from business logic functions. Always wrap API calls in a separate module that handles caching, error handling, and logging.
+* Logical Separation of Concerns
+  * Keep UI, state management, and business logic separate.
+  * Business logic should be in pure functions and should not directly manipulate UI state.
+  * External API calls should always be wrapped in dedicated modules to handle retries, caching, and error handling.
+  * State management should not contain API calls—instead, separate API interactions into services or repositories.
+  * Avoid deeply nested dependencies between modules to keep code maintainable and testable.
+* Caching Mechanism (Keep It Simple)
+  * Minimal file-system-based caching for AI LLM calls and YouTube API calls.
+  * Simple enable/disable toggle in the UI to aid debugging.
+  * Option to clear specific cache items or the entire cache.
+
+* Error Handling:
+  * Always include proper error handling in functions.
+  * Use try-catch blocks to handle errors.
+  * Return proper error messages and status codes.
+  * Never intentionally return non-200 status codes (like 500 or 404 or 400 status codes) from api calls. Always return status code 200 from api calls and include proper error fields in the response if errors exist.
+
+
+
+* Always use yarn when installing dependencies and npm packages
+
+** UI & Design Guidelines **
+* Always use Material-UI (MUI) for UI components and styling.
+* Use Mobile first approach for responsive design.
+* Consider most popular screen sizes (e.g. 375px, 1024px, 1280px)
+
+
+** Code Guidelines **
+
+* Always run lint and typescript check after each completion of code changes.
+* Never implement fallback flows unless I explicitly ask you to do so.
+* Never use any as a type, always use proper types.
+* Always remove unused variables, imports, and code. Always recheck after making edits that the file does not have any unused variables, imports, or code.
+* make sure to never duplicate types
+* make sure all the response types from api routes are being used in the response type in the client
+* never Re-export with the same interface for backward compatibility
+
+
+
