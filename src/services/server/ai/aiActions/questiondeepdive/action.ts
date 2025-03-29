@@ -83,7 +83,8 @@ const processQuestionDeepDive = async (
             type: 'array',
             items: { type: 'string' }
           },
-          additionalContext: { type: 'string' }
+          additionalContext: { type: 'string' },
+          question: { type: 'string' }
         },
         required: ['shortAnswer', 'detailedPoints', 'quotes']
       }
@@ -107,6 +108,7 @@ const processQuestionDeepDive = async (
       return {
         answer: {
           shortAnswer: response.json.shortAnswer || 'No short answer available',
+          question: response.json.question || question,
           detailedPoints: Array.isArray(response.json.detailedPoints) ? response.json.detailedPoints : [],
           quotes: Array.isArray(response.json.quotes) ? response.json.quotes : [],
           additionalContext: response.json.additionalContext
@@ -120,6 +122,7 @@ const processQuestionDeepDive = async (
     return {
       answer: {
         shortAnswer: 'Failed to generate a detailed answer',
+        question: question,
         detailedPoints: [],
         quotes: [],
         additionalContext: 'An error occurred while processing the question'
@@ -133,6 +136,7 @@ const processQuestionDeepDive = async (
     return {
       answer: {
         shortAnswer: 'An error occurred while generating the answer',
+        question: question,
         detailedPoints: [],
         quotes: [],
         additionalContext: 'Please try again later'

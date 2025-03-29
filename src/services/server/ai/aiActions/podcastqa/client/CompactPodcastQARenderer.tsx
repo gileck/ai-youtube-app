@@ -77,48 +77,12 @@ const QAItem = memo(({
         variant="body2"
         sx={{
           fontSize: '0.7rem',
-          mb: qaItem.quotes && qaItem.quotes.length > 0 ? 1 : 0,
+          mb: 1,
           pl: 1
         }}
       >
         {qaItem.answer}
       </Typography>
-
-      {/* Supporting Quotes */}
-      {qaItem.quotes && qaItem.quotes.length > 0 && (
-        <>
-          <Typography
-            variant="caption"
-            color="primary"
-            sx={{
-              display: 'block',
-              fontWeight: 'medium',
-              mb: 0.5
-            }}
-          >
-            Supporting Quotes:
-          </Typography>
-          <Box sx={{ pl: 1 }}>
-            {qaItem.quotes.slice(0, 3).map((quote: string, quoteIndex: number) => (
-              <Typography
-                key={`quote-${quoteIndex}`}
-                variant="body2"
-                sx={{
-                  mb: quoteIndex < Math.min(qaItem.quotes.length, 3) - 1 ? 0.5 : 0,
-                  fontSize: '0.7rem',
-                  fontStyle: 'italic',
-                  borderLeft: '2px solid',
-                  borderColor: theme.palette.primary.light,
-                  pl: 1,
-                  py: 0.3
-                }}
-              >
-                &quot;{quote}&quot;
-              </Typography>
-            ))}
-          </Box>
-        </>
-      )}
 
       {/* Full Answer Button */}
       <Box sx={{ mt: 1.5, display: 'flex', justifyContent: 'flex-end' }}>
@@ -330,7 +294,13 @@ export const CompactPodcastQARenderer: React.FC<CompactPodcastQARendererProps> =
       });
 
       if (response.success && response.data?.result) {
-        setDeepDiveData(response.data.result as any);
+        setDeepDiveData({
+          ...response.data.result,
+          cost: response.data.cost,
+          isCached: response.data.isCached,
+          tokens: response.data.tokens,
+          processingTime: response.data.processingTime
+        } as any);
       } else {
         setDialogError(response.error?.message || "Failed to get detailed answer");
       }
@@ -341,6 +311,56 @@ export const CompactPodcastQARenderer: React.FC<CompactPodcastQARendererProps> =
       setDialogLoading(false);
     }
   }, [apiClient, videoId, settings, findChapterContentByTitle]);
+
+  // Handle refresh request (regenerate without cache)
+  const handleRefresh = useCallback((skipCache: boolean) => {
+    if (!deepDiveData || !videoId) return;
+    
+    // Get the original question and chapter title from the current data
+    const originalQuestion = deepDiveData.question;
+    const chapterTitle = deepDiveData.chapterTitle;
+    
+    setDialogLoading(true);
+    setDialogError(undefined);
+    
+    // Create the params object with the correct structure and proper typing
+    const params: QuestionDeepDiveParams = {
+      type: ACTION_TYPES.QUESTIONDEEPDIVE,
+      question: originalQuestion,
+      chapterTitle,
+      videoId
+    };
+
+    // Make the API call with skipCache=true to force regeneration
+    apiClient?.processVideo({
+      videoId,
+      action: ACTION_TYPES.QUESTIONDEEPDIVE,
+      model: settings.aiModel,
+      costApprovalThreshold: settings.costApprovalThreshold,
+      skipCache: true, // Force skip cache when regenerating
+      params
+    })
+    .then(response => {
+      if (response.success && response.data?.result) {
+        setDeepDiveData({
+          ...response.data.result,
+          cost: response.data.cost,
+          isCached: response.data.isCached,
+          tokens: response.data.tokens,
+          processingTime: response.data.processingTime
+        } as any);
+      } else {
+        setDialogError(response.error?.message || "Failed to regenerate detailed answer");
+      }
+    })
+    .catch(error => {
+      console.error("Error regenerating answer:", error);
+      setDialogError(error instanceof Error ? error.message : "An unknown error occurred");
+    })
+    .finally(() => {
+      setDialogLoading(false);
+    });
+  }, [deepDiveData, videoId, apiClient, settings]);
 
   // Handle dialog close
   const handleDialogClose = useCallback(() => {
@@ -392,6 +412,10 @@ export const CompactPodcastQARenderer: React.FC<CompactPodcastQARendererProps> =
         data={deepDiveData}
         loading={dialogLoading}
         error={dialogError}
+        onRefresh={handleRefresh}
+        originalQuestion={deepDiveData?.question}
+        chapterTitle={deepDiveData?.chapterTitle}
+        videoId={videoId}
       />
     </Box>
   );

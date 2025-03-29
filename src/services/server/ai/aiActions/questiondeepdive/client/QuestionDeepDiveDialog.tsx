@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -15,11 +15,17 @@ import {
   useMediaQuery,
   IconButton,
   Paper,
-  Chip
+  Chip,
+  Tooltip
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import QuestionAnswerIcon from '@mui/icons-material/QuestionAnswer';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import CachedIcon from '@mui/icons-material/Cached';
 import { QuestionDeepDiveResponseData } from '../../../../../../types/shared/ai';
+import { useApiClient } from '../../../../../../contexts/ApiContext';
+import { useSettings } from '../../../../../../contexts/SettingsContext';
+import { ACTION_TYPES } from '../../../aiActions/constants';
 
 interface QuestionDeepDiveDialogProps {
   open: boolean;
@@ -27,6 +33,10 @@ interface QuestionDeepDiveDialogProps {
   data?: QuestionDeepDiveResponseData;
   loading?: boolean;
   error?: string;
+  onRefresh?: (skipCache: boolean) => void;
+  originalQuestion?: string;
+  chapterTitle?: string;
+  videoId?: string;
 }
 
 /**
@@ -37,10 +47,60 @@ export const QuestionDeepDiveDialog: React.FC<QuestionDeepDiveDialogProps> = ({
   onClose,
   data,
   loading = false,
-  error
+  error,
+  onRefresh,
+  originalQuestion,
+  chapterTitle,
+  videoId
 }) => {
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
+  const { apiClient } = useApiClient();
+  const { settings } = useSettings();
+  const [isRegenerating, setIsRegenerating] = useState(false);
+
+  // Format cost to display in dollars with 4 decimal places
+  const formatCost = (cost?: number): string => {
+    if (cost === undefined) return 'Unknown';
+    return `$${cost.toFixed(4)}`;
+  };
+
+  // Handle regenerate button click
+  const handleRegenerate = async () => {
+    if (!apiClient || !videoId || !originalQuestion || !chapterTitle) {
+      return;
+    }
+
+    setIsRegenerating(true);
+
+    try {
+      // If onRefresh is provided, use it
+      if (onRefresh) {
+        onRefresh(true);
+      } else {
+        // Otherwise make the API call directly
+        const params = {
+          type: ACTION_TYPES.QUESTIONDEEPDIVE,
+          question: originalQuestion,
+          chapterTitle,
+          videoId
+        };
+
+        await apiClient.processVideo({
+          videoId,
+          action: ACTION_TYPES.QUESTIONDEEPDIVE,
+          model: settings.aiModel,
+          costApprovalThreshold: settings.costApprovalThreshold,
+          skipCache: true, // Skip cache to regenerate
+          params
+        });
+      }
+    } catch (error) {
+      console.error("Error regenerating answer:", error);
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
 
   return (
     <Dialog
@@ -77,7 +137,7 @@ export const QuestionDeepDiveDialog: React.FC<QuestionDeepDiveDialogProps> = ({
       <Divider />
       
       <DialogContent sx={{ pt: 2, pb: 1 }}>
-        {loading ? (
+        {loading || isRegenerating ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
             <CircularProgress size={40} />
           </Box>
@@ -87,6 +147,24 @@ export const QuestionDeepDiveDialog: React.FC<QuestionDeepDiveDialogProps> = ({
           </Typography>
         ) : data ? (
           <Box>
+            {/* Chapter title */}
+            {data.chapterTitle && data.chapterTitle !== 'Unknown Chapter' && (
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <Chip 
+                  label={`Chapter: ${data.chapterTitle}`}
+                  size="small"
+                  color="primary"
+                  variant="outlined"
+                  sx={{ 
+                    fontWeight: 500,
+                    borderRadius: 1,
+                    height: 'auto',
+                    py: 0.5
+                  }}
+                />
+              </Box>
+            )}
+            
             {/* Question */}
             <Paper 
               elevation={0} 
@@ -105,17 +183,37 @@ export const QuestionDeepDiveDialog: React.FC<QuestionDeepDiveDialogProps> = ({
                   color: theme.palette.primary.dark
                 }}
               >
-                Q: {data.question}
+                Q: {data.answer.question || data.question}
               </Typography>
             </Paper>
 
-            {/* Chapter title */}
-            {data.chapterTitle && data.chapterTitle !== 'Unknown Chapter' && (
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <Chip 
-                  label={`Chapter: ${data.chapterTitle}`}
+            {/* Cache status and cost */}
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
+              {/* Cost chip */}
+              {data.cost !== undefined && (
+                <Tooltip title="Cost of generating this answer">
+                  <Chip
+                    label={`Cost: ${formatCost(data.cost)}`}
+                    size="small"
+                    color="default"
+                    variant="outlined"
+                    sx={{ 
+                      fontWeight: 500,
+                      borderRadius: 1,
+                      height: 'auto',
+                      py: 0.5
+                    }}
+                  />
+                </Tooltip>
+              )}
+              
+              {/* Cache status chip */}
+              {data.isCached !== undefined && (
+                <Chip
+                  icon={<CachedIcon fontSize="small" />}
+                  label={data.isCached ? "Cached" : "Fresh"}
                   size="small"
-                  color="primary"
+                  color={data.isCached ? "success" : "info"}
                   variant="outlined"
                   sx={{ 
                     fontWeight: 500,
@@ -124,8 +222,8 @@ export const QuestionDeepDiveDialog: React.FC<QuestionDeepDiveDialogProps> = ({
                     py: 0.5
                   }}
                 />
-              </Box>
-            )}
+              )}
+            </Box>
 
             {/* Short answer */}
             <Paper 
@@ -259,8 +357,17 @@ export const QuestionDeepDiveDialog: React.FC<QuestionDeepDiveDialogProps> = ({
         )}
       </DialogContent>
       
-      <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={onClose} variant="outlined">
+      <DialogActions sx={{ px: 3, py: 2, display: 'flex', justifyContent: 'space-between' }}>
+        <Button 
+          onClick={handleRegenerate}
+          variant="outlined"
+          color="primary"
+          startIcon={<RefreshIcon />}
+          disabled={loading || isRegenerating || !videoId || !originalQuestion}
+        >
+          Regenerate
+        </Button>
+        <Button onClick={onClose} variant="contained">
           Close
         </Button>
       </DialogActions>

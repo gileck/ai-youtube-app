@@ -60,7 +60,6 @@ export interface KeyTakeawayResponseData {
 export interface QAItem {
   question: string;
   answer: string;
-  quotes: string[];
 }
 
 export interface QAChapter {
@@ -74,6 +73,7 @@ export interface PodcastQAResponseData {
 
 export interface DeepDiveAnswer {
   shortAnswer: string;
+  question: string;
   detailedPoints: string[];
   quotes: string[];
   additionalContext?: string;
@@ -83,6 +83,10 @@ export interface QuestionDeepDiveResponseData {
   question: string;
   chapterTitle: string;
   answer: DeepDiveAnswer;
+  isCached?: boolean;
+  cost?: number;
+  tokens?: number;
+  processingTime?: number;
 }
 
 // Base interface for all AI responses with metadata

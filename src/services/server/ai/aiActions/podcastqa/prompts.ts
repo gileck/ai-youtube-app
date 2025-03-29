@@ -12,10 +12,8 @@ IMPORTANT REQUIREMENTS:
 1. Identify all questions asked by the interviewer and the corresponding answers from the guest
 2. For each question, create a simplified, concise version that captures the essence of what was asked
 3. For each answer, create a concise summary that captures the key points of the guest's response
-4. Include 1-5 direct quotes from the transcript that best represent the answer (full sentences or parts of sentences)
-5. Do not include duplicated quotes
-6. Try to make each quote a complete thought from the transcript
-7. Quotes can include "..." in the middle to connect relevant parts
+4. In the question and answer write the question like you are asking him the question (how did you...?) and the answer like he is writing the answer (I started in...). dont use words like "The speaker" or "The guest" in the answer.
+5. If appropriate, combine 2 related questions into one question and answer pair. Only combine if it makes sense to combine them.
 
 Make sure to only include information that is directly referenced in the transcript.
 DO NOT include any information that is not directly referenced in the transcript.
@@ -23,9 +21,8 @@ DO NOT include any information that is not directly referenced in the transcript
 Format your response as a JSON array of Q&A pairs with the following structure:
 [
   {
-    "question": "Simplified version of the question",
-    "answer": "Concise summary of the answer",
-    "quotes": ["Direct quote from transcript supporting this answer", "Another supporting quote if available"]
+    "question": "Simplified version of the question in a Fully contextualized open-ended question",
+    "answer": "Concise summary of the answer"
   },
   ...
 ]

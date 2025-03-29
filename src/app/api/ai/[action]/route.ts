@@ -101,7 +101,7 @@ export async function POST(
     // Create typed action parameters
     const typedParams: AIActionParams = {
       type: action,
-      ...actionParams
+      ...(actionParams || {})
     };
 
     // If not approved, check cost first
@@ -149,7 +149,7 @@ export async function POST(
       success: false,
       error: {
         code: 'PROCESSING_ERROR',
-        message: error instanceof Error ? error.message : 'An unknown error occurred',
+        message: error instanceof Error ? error.message : 'Unknown error occurred',
         details: error
       }
     }, { status: 200 });

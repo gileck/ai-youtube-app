@@ -17,6 +17,7 @@ export interface QuestionDeepDiveParams {
  */
 export interface DeepDiveAnswer {
   shortAnswer: string;
+  question: string;
   detailedPoints: string[];
   quotes: string[];
   additionalContext?: string;

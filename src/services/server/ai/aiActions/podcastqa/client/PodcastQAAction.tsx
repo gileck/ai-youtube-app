@@ -128,7 +128,7 @@ export const PodcastQARenderer: React.FC<PodcastQARendererProps> = ({ result, vi
 
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
         {totalQAPairs} question-answer pairs found in {chapters.length} chapters.
-        Click on each question to see the answer and supporting quotes.
+        Click on each question to see the answer.
       </Typography>
 
       {chapters.map((chapter, chapterIndex) => (
@@ -189,32 +189,6 @@ export const PodcastQARenderer: React.FC<PodcastQARendererProps> = ({ result, vi
                       <Typography variant="body2" paragraph sx={{ pl: 2 }}>
                         {qaItem.answer}
                       </Typography>
-
-                      {qaItem.quotes && qaItem.quotes.length > 0 && (
-                        <>
-                          <Typography variant="subtitle2" color="primary" gutterBottom>
-                            Supporting Quotes:
-                          </Typography>
-                          <Box sx={{ pl: 2 }}>
-                            {qaItem.quotes.map((quote, quoteIndex) => (
-                              <Typography 
-                                key={`quote-${quoteIndex}`} 
-                                variant="body2" 
-                                sx={{ 
-                                  mb: 1,
-                                  fontStyle: 'italic',
-                                  borderLeft: '2px solid',
-                                  borderColor: 'primary.light',
-                                  pl: 1.5,
-                                  py: 0.5
-                                }}
-                              >
-                                &quot;{quote}&quot;
-                              </Typography>
-                            ))}
-                          </Box>
-                        </>
-                      )}
                     </Box>
                   </AccordionDetails>
                 </Accordion>
