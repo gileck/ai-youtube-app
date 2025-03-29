@@ -20,6 +20,7 @@ export interface TakeawayItem {
   recommendation: string;
   details: string;
   mechanism: string;
+  quotes: string[];
 }
 
 // Structure for a category of takeaways

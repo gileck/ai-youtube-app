@@ -1,13 +1,13 @@
 'use client';
 
 import React from 'react';
-import { AIActionParams, AIResponse, KeyTakeawayResponse } from '../../../../../types/shared/ai';
+import { AIActionParams, AIResponse } from '../../../../../types/shared/ai';
 
 import SummaryRenderer, { SummaryActionMeta } from '../summary/client/SummaryAction';
 import QuestionRenderer, { QuestionActionMeta } from '../question/client/QuestionAction';
 import KeypointsRenderer, { KeypointsActionMeta } from '../keypoints/client/KeypointsAction';
 import TopicsRenderer, { TopicsActionMeta } from '../topics/client/TopicsAction';
-import KeyTakeawayRenderer, { KeyTakeawayActionMeta } from '../keytakeaway/client/KeyTakeawayAction';
+import KeyTakeawayRenderer, { KeyTakeawayActionMeta, KeyTakeawayRendererProps } from '../keytakeaway/client/KeyTakeawayAction';
 
 /**
  * Define the props for all action renderers
@@ -63,7 +63,7 @@ export const AI_ACTIONS: Record<string, {
     label: KeyTakeawayActionMeta.label,
     icon: KeyTakeawayActionMeta.icon,
     description: KeyTakeawayActionMeta.description,
-    renderResult: (props) => <KeyTakeawayRenderer result={props.result as KeyTakeawayResponse} videoId={props.videoId} />
+    renderResult: (props) => <KeyTakeawayRenderer {...props as unknown as KeyTakeawayRendererProps} />
   }
 };
 

@@ -16,14 +16,14 @@ import {
 import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import { KeyTakeawayResponse, KeyTakeawayResponseData, TakeawayCategory } from '../../../../../../types/shared/ai';
+import { KeyTakeawayResponse, KeyTakeawayResponseData, TakeawayCategory, AIActionParams } from '../../../../../../types/shared/ai';
 import { useApiClient } from '../../../../../../contexts/ApiContext';
 import { useSettings } from '../../../../../../contexts/SettingsContext';
 import { ACTION_TYPES } from '../../../aiActions/constants';
 
 // Define the props for the renderer component
 export interface KeyTakeawayRendererProps {
-  result: KeyTakeawayResponse;
+  result: KeyTakeawayResponse | Record<string, unknown>;
   videoId?: string;
 }
 
@@ -39,7 +39,14 @@ export const KeyTakeawayRenderer: React.FC<KeyTakeawayRendererProps> = ({ result
 
   // Parse the result when the component mounts or when the result changes
   React.useEffect(() => {
-    setCategories(result.categories);
+    // Check if result is KeyTakeawayResponse or has categories property
+    if (result && typeof result === 'object' && 'categories' in result && Array.isArray(result.categories)) {
+      setCategories(result.categories as TakeawayCategory[]);
+    } else {
+      // Handle case where result might be a different type
+      console.warn('Result does not contain valid categories property:', result);
+      setCategories([]);
+    }
   }, [result]);
 
   // Function to refresh the recommendations
@@ -200,6 +207,32 @@ export const KeyTakeawayRenderer: React.FC<KeyTakeawayRendererProps> = ({ result
                       <Typography variant="body2" paragraph sx={{ pl: 2 }}>
                         {recommendation.mechanism}
                       </Typography>
+
+                      {recommendation.quotes && recommendation.quotes.length > 0 && (
+                        <>
+                          <Typography variant="subtitle2" color="primary" gutterBottom>
+                            Supporting Quotes:
+                          </Typography>
+                          <Box sx={{ pl: 2 }}>
+                            {recommendation.quotes.map((quote, quoteIndex) => (
+                              <Typography 
+                                key={`quote-${quoteIndex}`} 
+                                variant="body2" 
+                                sx={{ 
+                                  mb: 1,
+                                  fontStyle: 'italic',
+                                  borderLeft: '2px solid',
+                                  borderColor: 'primary.light',
+                                  pl: 1.5,
+                                  py: 0.5
+                                }}
+                              >
+                                &quot;{quote}&quot;
+                              </Typography>
+                            ))}
+                          </Box>
+                        </>
+                      )}
                     </Box>
                   </AccordionDetails>
                 </Accordion>

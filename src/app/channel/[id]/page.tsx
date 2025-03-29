@@ -17,13 +17,22 @@ import {
   ToggleButtonGroup,
   ToggleButton,
   Divider,
-  IconButton
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Radio,
+  RadioGroup,
+  FormControlLabel,
+  FormLabel
 } from '@mui/material';
 import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder';
 import BookmarkIcon from '@mui/icons-material/Bookmark';
 import SortIcon from '@mui/icons-material/Sort';
 import GridViewIcon from '@mui/icons-material/GridView';
 import ViewListIcon from '@mui/icons-material/ViewList';
+import FilterListIcon from '@mui/icons-material/FilterList';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import AppLayout from '../../../components/layout/AppLayout';
 import ChannelVideos from '../../../components/channel/ChannelVideos';
@@ -53,7 +62,7 @@ export default function ChannelPage() {
       case '60plus':
         return { min: 3600, max: 0 }; // 60+ minutes (3600 seconds)
       default:
-        return { min: 600, max: 0 }; // Default to 10+ minutes
+        return { min: 0, max: 0 }; // Default to all durations
     }
   };
   
@@ -91,6 +100,7 @@ export default function ChannelPage() {
   const [error, setError] = useState<string | null>(null);
   const [nextPageToken, setNextPageToken] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
+  const [filterDialogOpen, setFilterDialogOpen] = useState(false);
   
   const { isBookmarked, addToBookmarks, removeFromBookmarks } = useHistory();
   
@@ -258,25 +268,27 @@ export default function ChannelPage() {
     <AppLayout>
       <ChannelViewTracker channelData={channelData}>
         <Container maxWidth="lg" sx={{ px: 0 }}>
-          <Box sx={{ py: { xs: 1, sm: 2 } }}>
+          <Box sx={{ py: { xs: 2, sm: 3 } }}>
             {/* Channel Header */}
-            <Box sx={{ mb: 4 }}>
+            <Box sx={{ mb: { xs: 3, sm: 4 } }}>
               <Box sx={{ 
                 display: 'flex', 
-                alignItems: 'center', 
+                alignItems: { xs: 'flex-start', sm: 'center' }, 
                 mb: 2,
-                gap: { xs: 1, sm: 2 }
+                gap: { xs: 1, sm: 2 },
+                flexDirection: { xs: 'column', sm: 'row' } // Stack vertically on mobile
               }}>
                 <Avatar 
                   src={channelData.thumbnail} 
                   alt={channelData.title}
                   sx={{ 
-                    width: { xs: 60, sm: 80 }, 
-                    height: { xs: 60, sm: 80 }, 
-                    mr: { xs: 1, sm: 2 }
+                    width: { xs: 80, sm: 80 }, 
+                    height: { xs: 80, sm: 80 }, 
+                    mr: { xs: 0, sm: 2 },
+                    alignSelf: { xs: 'center', sm: 'flex-start' }
                   }}
                 />
-                <Box>
+                <Box sx={{ width: '100%' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center' }}>
                     <Typography 
                       variant="h4" 
@@ -302,7 +314,7 @@ export default function ChannelPage() {
                       )}
                     </IconButton>
                   </Box>
-                  <Box sx={{ display: 'flex', gap: { xs: 1, sm: 2 }, mt: 1, flexWrap: 'wrap' }}>
+                  <Box sx={{ display: 'flex', gap: { xs: 1, sm: 2 }, mt: 1, flexWrap: 'wrap', justifyContent: { xs: 'center', sm: 'flex-start' } }}>
                     <Chip 
                       label={`${formatNumber(channelData.subscriberCount)} subscribers`} 
                       variant="outlined"
@@ -331,7 +343,11 @@ export default function ChannelPage() {
                     fontSize: { xs: '0.875rem', sm: '1rem' },
                     wordBreak: 'break-word',
                     overflowWrap: 'break-word',
-                    whiteSpace: 'normal'
+                    whiteSpace: 'normal',
+                    px: { xs: 1.5, sm: 0 }, // Add padding for mobile
+                    py: { xs: 1, sm: 0 }, // Add vertical padding for mobile
+                    borderRadius: { xs: 1, sm: 0 }, // Add slight border radius on mobile
+                    bgcolor: { xs: 'rgba(0, 0, 0, 0.02)', sm: 'transparent' }, // Light background on mobile
                   }}
                 >
                   {channelData.description}
@@ -344,68 +360,114 @@ export default function ChannelPage() {
             {/* Filters */}
             <Box sx={{ 
               display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center', 
-              mb: 3, 
-              flexWrap: 'wrap', 
-              gap: { xs: 1, sm: 2 }
+              flexDirection: 'column',
+              mb: { xs: 2, sm: 3 }, 
+              gap: { xs: 1, sm: 1.5 }
             }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 }, flexWrap: 'wrap' }}>
-                <FormControl size="small" sx={{ minWidth: 150 }}>
-                  <InputLabel id="sort-select-label" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Sort By</InputLabel>
-                  <Select
-                    labelId="sort-select-label"
-                    id="sort-select"
-                    value={sortBy}
-                    label="Sort By"
-                    onChange={handleSortChange}
-                    startAdornment={<SortIcon sx={{ mr: 1 }} />}
-                    sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
-                  >
-                    <MenuItem value="date" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Date (newest)</MenuItem>
-                    <MenuItem value="viewCount" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>View Count</MenuItem>
-                    <MenuItem value="rating" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Rating</MenuItem>
-                  </Select>
-                </FormControl>
-                
-                <ToggleButtonGroup
-                  value={durationFilter}
-                  exclusive
-                  onChange={handleDurationChange}
-                  aria-label="duration filter"
+              {/* Sort buttons - YouTube style */}
+              <Box sx={{ 
+                display: 'flex',
+                overflowX: 'auto',
+                pb: 1,
+                pt: 1,
+                px: 1,
+                gap: 1.5,
+                '&::-webkit-scrollbar': {
+                  display: 'none'
+                },
+                scrollbarWidth: 'none',
+              }}>
+                <Button
+                  variant={sortBy === 'date' ? 'contained' : 'outlined'}
+                  onClick={() => updateFilters('date', durationFilter, viewMode)}
                   size="small"
-                  sx={{ '& .MuiToggleButton-root': { fontSize: { xs: '0.7rem', sm: '0.8rem' } } }}
+                  sx={{ 
+                    borderRadius: 5,
+                    px: 3,
+                    bgcolor: sortBy === 'date' ? 'background.paper' : 'action.hover',
+                    color: sortBy === 'date' ? 'text.primary' : 'text.secondary',
+                    border: 'none',
+                    boxShadow: sortBy === 'date' ? 2 : 'none',
+                    '&:hover': {
+                      bgcolor: sortBy === 'date' ? 'background.paper' : 'action.selected',
+                      boxShadow: sortBy === 'date' ? 2 : 'none',
+                      border: 'none',
+                    },
+                    textTransform: 'none',
+                    fontWeight: sortBy === 'date' ? 'bold' : 'normal',
+                    minWidth: 'auto',
+                  }}
                 >
-                  <ToggleButton value="all" aria-label="all durations">
-                    All
+                  Latest
+                </Button>
+                <Button
+                  variant={sortBy === 'viewCount' ? 'contained' : 'outlined'}
+                  onClick={() => updateFilters('viewCount', durationFilter, viewMode)}
+                  size="small"
+                  sx={{ 
+                    borderRadius: 5,
+                    px: 3,
+                    bgcolor: sortBy === 'viewCount' ? 'background.paper' : 'action.hover',
+                    color: sortBy === 'viewCount' ? 'text.primary' : 'text.secondary',
+                    border: 'none',
+                    boxShadow: sortBy === 'viewCount' ? 2 : 'none',
+                    '&:hover': {
+                      bgcolor: sortBy === 'viewCount' ? 'background.paper' : 'action.selected',
+                      boxShadow: sortBy === 'viewCount' ? 2 : 'none',
+                      border: 'none',
+                    },
+                    textTransform: 'none',
+                    fontWeight: sortBy === 'viewCount' ? 'bold' : 'normal',
+                    minWidth: 'auto',
+                  }}
+                >
+                  Popular
+                </Button>
+                
+                {/* Filter button that opens dialog */}
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<FilterListIcon />}
+                  onClick={() => setFilterDialogOpen(true)}
+                  sx={{ 
+                    borderRadius: 5,
+                    px: 2,
+                    ml: { xs: 'auto', sm: 1 },
+                    bgcolor: 'action.hover',
+                    color: 'text.secondary',
+                    border: 'none',
+                    '&:hover': {
+                      bgcolor: 'action.selected',
+                      border: 'none',
+                    },
+                    textTransform: 'none',
+                  }}
+                >
+                  Filter
+                </Button>
+              </Box>
+
+              {/* View Mode Toggle - Only visible on larger screens */}
+              <Box sx={{ 
+                display: { xs: 'none', sm: 'flex' },
+                justifyContent: 'flex-end'
+              }}>
+                <ToggleButtonGroup
+                  value={viewMode}
+                  exclusive
+                  onChange={handleViewModeChange}
+                  aria-label="view mode"
+                  size="small"
+                >
+                  <ToggleButton value="grid" aria-label="grid view">
+                    <GridViewIcon />
                   </ToggleButton>
-                  <ToggleButton value="10plus" aria-label="10+ minutes">
-                    10+ min
-                  </ToggleButton>
-                  <ToggleButton value="30plus" aria-label="30+ minutes">
-                    30+ min
-                  </ToggleButton>
-                  <ToggleButton value="60plus" aria-label="60+ minutes">
-                    1+ hour
+                  <ToggleButton value="list" aria-label="list view">
+                    <ViewListIcon />
                   </ToggleButton>
                 </ToggleButtonGroup>
               </Box>
-
-              {/* View Mode Toggle */}
-              <ToggleButtonGroup
-                value={viewMode}
-                exclusive
-                onChange={handleViewModeChange}
-                aria-label="view mode"
-                size="small"
-              >
-                <ToggleButton value="grid" aria-label="grid view">
-                  <GridViewIcon />
-                </ToggleButton>
-                <ToggleButton value="list" aria-label="list view">
-                  <ViewListIcon />
-                </ToggleButton>
-              </ToggleButtonGroup>
             </Box>
             
             {/* Loading State */}
@@ -445,6 +507,45 @@ export default function ChannelPage() {
           </Box>
         </Container>
       </ChannelViewTracker>
+      
+      {/* Filter Dialog */}
+      <Dialog 
+        open={filterDialogOpen} 
+        onClose={() => setFilterDialogOpen(false)}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle>Filter Videos</DialogTitle>
+        <DialogContent>
+          <Box sx={{ mb: 3 }}>
+            <FormLabel component="legend" sx={{ mb: 1 }}>Sort By</FormLabel>
+            <RadioGroup
+              value={sortBy}
+              onChange={(e) => updateFilters(e.target.value, durationFilter, viewMode)}
+            >
+              <FormControlLabel value="date" control={<Radio />} label="Latest" />
+              <FormControlLabel value="viewCount" control={<Radio />} label="Most popular" />
+              <FormControlLabel value="dateAsc" control={<Radio />} label="Oldest" />
+            </RadioGroup>
+          </Box>
+          
+          <Box sx={{ mb: 2 }}>
+            <FormLabel component="legend" sx={{ mb: 1 }}>Duration</FormLabel>
+            <RadioGroup
+              value={durationFilter}
+              onChange={(e) => updateFilters(sortBy, e.target.value, viewMode)}
+            >
+              <FormControlLabel value="all" control={<Radio />} label="All videos" />
+              <FormControlLabel value="10plus" control={<Radio />} label="10+ minutes" />
+              <FormControlLabel value="30plus" control={<Radio />} label="30+ minutes" />
+              <FormControlLabel value="60plus" control={<Radio />} label="1+ hour" />
+            </RadioGroup>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setFilterDialogOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
     </AppLayout>
   );
 }

@@ -117,9 +117,13 @@ const generateStructuredRecommendations = async (
                   emoji: { type: 'string' },
                   recommendation: { type: 'string' },
                   details: { type: 'string' },
-                  mechanism: { type: 'string' }
+                  mechanism: { type: 'string' },
+                  quotes: { 
+                    type: 'array',
+                    items: { type: 'string' }
+                  }
                 },
-                required: ['emoji', 'recommendation', 'details', 'mechanism']
+                required: ['emoji', 'recommendation', 'details', 'mechanism', 'quotes']
               }
             }
           },
@@ -144,7 +148,8 @@ const generateStructuredRecommendations = async (
           emoji: takeaway.emoji || '✅',
           recommendation: takeaway.recommendation || 'Specific recommendation',
           details: takeaway.details || '',
-          mechanism: takeaway.mechanism || ''
+          mechanism: takeaway.mechanism || '',
+          quotes: Array.isArray(takeaway.quotes) ? takeaway.quotes : []
         }))
       }));
     }
@@ -324,9 +329,13 @@ export const keyTakeawayProcessor: AIActionProcessor<KeyTakeawayParams, KeyTakea
                     emoji: { type: 'string' },
                     recommendation: { type: 'string' },
                     details: { type: 'string' },
-                    mechanism: { type: 'string' }
+                    mechanism: { type: 'string' },
+                    quotes: { 
+                      type: 'array',
+                      items: { type: 'string' }
+                    }
                   },
-                  required: ['emoji', 'recommendation', 'details', 'mechanism']
+                  required: ['emoji', 'recommendation', 'details', 'mechanism', 'quotes']
                 }
               }
             },
@@ -347,7 +356,8 @@ export const keyTakeawayProcessor: AIActionProcessor<KeyTakeawayParams, KeyTakea
         emoji: takeaway.emoji || '✅',
         recommendation: takeaway.recommendation || 'Specific recommendation',
         details: takeaway.details || '',
-        mechanism: takeaway.mechanism || ''
+        mechanism: takeaway.mechanism || '',
+        quotes: Array.isArray(takeaway.quotes) ? takeaway.quotes : []
       }))
     }));
 

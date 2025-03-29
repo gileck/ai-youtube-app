@@ -1,5 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server';
-import axios from 'axios';
+import { callYouTubeApi } from '../../../../../services/server/youtube/youtubeApiClient';
+
+// Define interface for YouTube channel response
+interface YouTubeChannelResponse {
+  items: Array<{
+    id: string;
+    snippet: {
+      title: string;
+      description: string;
+      publishedAt: string;
+      thumbnails: {
+        high?: {
+          url: string;
+        };
+        default?: {
+          url: string;
+        };
+      };
+      country?: string;
+    };
+    statistics: {
+      subscriberCount: string;
+      videoCount: string;
+      viewCount: string;
+    };
+    brandingSettings?: {
+      image?: {
+        bannerExternalUrl?: string;
+      };
+    };
+  }>;
+}
 
 /**
  * API route handler for fetching YouTube channel details
@@ -21,23 +52,17 @@ export async function GET(
       }, { status: 200 });
     }
 
-    // Fetch channel details from YouTube API
-    const apiKey = process.env.YOUTUBE_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({
-        success: false,
-        error: {
-          code: 'MISSING_API_KEY',
-          message: 'YouTube API key is not configured'
-        }
-      }, { status: 200 });
-    }
+    // Fetch channel details using our API client with HTML entity decoding
+    const response = await callYouTubeApi<YouTubeChannelResponse>({
+      endpoint: 'channels',
+      params: {
+        part: 'snippet,statistics,brandingSettings',
+        id: channelId
+      },
+      enableCaching: true
+    });
 
-    const response = await axios.get(
-      `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics,brandingSettings&id=${channelId}&key=${apiKey}`
-    );
-
-    if (!response.data.items || response.data.items.length === 0) {
+    if (!response.success || !response.data || !response.data.items || response.data.items.length === 0) {
       return NextResponse.json({
         success: false,
         error: {
@@ -60,12 +85,14 @@ export async function GET(
       subscriberCount: parseInt(channelData.statistics.subscriberCount || '0', 10),
       videoCount: parseInt(channelData.statistics.videoCount || '0', 10),
       viewCount: parseInt(channelData.statistics.viewCount || '0', 10),
-      country: channelData.snippet.country || null
+      country: channelData.snippet.country || null,
+      type: 'channel'
     };
 
     return NextResponse.json({
       success: true,
-      data: channelDetails
+      data: channelDetails,
+      cached: response.cached
     }, { status: 200 });
 
   } catch (error) {

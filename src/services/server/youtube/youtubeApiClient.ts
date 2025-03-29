@@ -5,6 +5,61 @@ import crypto from 'crypto';
 import { trackYouTubeApiCall, YOUTUBE_API_QUOTA_COSTS } from '../monitoring/youtubeMetricsStore';
 import { getSettings } from '../../client/settingsClient';
 
+/**
+ * Decode HTML entities in a string
+ * Handles common entities like &amp;, &lt;, &gt;, &quot;, etc.
+ */
+function decodeHtmlEntities(text: string): string {
+  const entities: Record<string, string> = {
+    '&amp;': '&',
+    '&lt;': '<',
+    '&gt;': '>',
+    '&quot;': '"',
+    '&#39;': "'",
+    '&apos;': "'",
+    '&#x2F;': '/',
+    '&#x2f;': '/',
+    '&#x5C;': '\\',
+    '&#x5c;': '\\',
+    '&#x60;': '`',
+    '&#x3D;': '=',
+    '&#x3d;': '=',
+    '&#x3C;': '<',
+    '&#x3c;': '<',
+    '&#x3E;': '>',
+    '&#x3e;': '>',
+  };
+  
+  return text.replace(/&[#\w]+;/g, match => entities[match] || match);
+}
+
+/**
+ * Recursively process an object to decode HTML entities in all string properties
+ */
+function processApiResponse<T>(data: T): T {
+  if (!data) return data;
+  
+  if (typeof data === 'string') {
+    return decodeHtmlEntities(data) as unknown as T;
+  }
+  
+  if (Array.isArray(data)) {
+    return data.map(item => processApiResponse(item)) as unknown as T;
+  }
+  
+  if (typeof data === 'object') {
+    const result: Record<string, any> = {};
+    for (const key in data) {
+      if (Object.prototype.hasOwnProperty.call(data, key)) {
+        result[key] = processApiResponse((data as Record<string, any>)[key]);
+      }
+    }
+    return result as T;
+  }
+  
+  return data;
+}
+
 // Helper function to detect if code is running in a test environment
 const isTestEnvironment = (): boolean => {
   return process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID !== undefined;
@@ -221,7 +276,7 @@ export async function callYouTubeApi<T>({
     // Prepare response
     const apiResponse: YouTubeApiResponse<T> = {
       success: true,
-      data: response.data
+      data: processApiResponse(response.data)
     };
 
     // Cache response if enabled

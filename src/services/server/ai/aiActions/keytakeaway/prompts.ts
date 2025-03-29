@@ -18,9 +18,13 @@ IMPORTANT REQUIREMENTS:
 7. Extract EVERY actionable recommendation - don't limit yourself to a specific number
 
 For each recommendation, make sure to include:
-1. A clear, specific action that was mentioned in the video
-2. Detailed implementation instructions with specific measurements, tools, or techniques
-3. An explanation of why it works, including any scientific principles, research, or evidence mentioned
+1. A clear, specific action that was mentioned in the video.
+2. All the related information, implementation details, and other related context that is related to the recommendation from the video.
+3. Include 1-5 direct quotes from the transcript that support this recommendation (full sentences or parts of sentences). Do not include duplicated quotes. Try to make the quote a sentence from the transcript. The quote can be with "..." in the middle. (for example: "this is a beginning of a sentence ... end of this quote")
+
+
+Make sure to only include information that is directly referenced in the transcript.
+DO NOT include any information that is not directly referenced in the transcript.
 
 Format your response as plain text with clear separation between different recommendations.
 
@@ -44,12 +48,17 @@ IMPORTANT REQUIREMENTS:
 7. Group similar recommendations into 2-5 meaningful categories
 8. Each category should have 2-5 recommendations
 9. Choose category names that are concise and descriptive
+10. For each recommendation, include 1-5 direct quotes from the transcript that support it - ONLY USE QUOTES FROM THE TRANSCRIPT 
 
 For each recommendation:
 1. Include a relevant emoji that precisely matches the specific action
 2. Provide a one-liner "recommendation" that describes a SPECIFIC action (keep it short and detailed)
 3. Include highly detailed implementation instructions with specific measurements, timings, tools, or techniques
 4. Explain the precise mechanism behind why it works, including any scientific principles, research, or evidence mentioned
+5. Include 1-5 direct quotes from the transcript that support this recommendation (full sentences or parts of sentences)
+
+Make sure to only include information that is directly referenced in the input.
+DO NOT include any information that is not directly referenced in the input.
 
 Format your response as a JSON array of categories with the following structure:
 [
@@ -60,7 +69,8 @@ Format your response as a JSON array of categories with the following structure:
         "emoji": "relevant emoji",
         "recommendation": "SPECIFIC one-liner action with exact details (keep it short)",
         "details": "HIGHLY DETAILED implementation instructions with specific measurements, tools, or techniques",
-        "mechanism": "PRECISE explanation of why it works with specific scientific principles or evidence"
+        "mechanism": "PRECISE explanation of why it works with specific scientific principles or evidence",
+        "quotes": ["Direct quote from transcript supporting this recommendation", "Another supporting quote if available"]
       },
       ...
     ]

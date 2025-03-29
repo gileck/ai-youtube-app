@@ -43,6 +43,7 @@ export interface TakeawayItem {
   recommendation: string;
   details: string;
   mechanism: string;
+  quotes: string[];
 }
 
 export interface TakeawayCategory {
