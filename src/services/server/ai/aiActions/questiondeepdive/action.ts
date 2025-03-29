@@ -200,10 +200,10 @@ export const questionDeepDiveProcessor: AIActionProcessor<QuestionDeepDiveParams
     options?: { skipCache?: boolean }
   ): Promise<AIProcessingResult<QuestionDeepDiveResponseData>> => {
 
-    console.log({
-      params,
-      chapterTitles: chapterContents.map(chapter => chapter.title)
-    });
+    // console.log({
+    //   params,
+    //   chapterTitles: chapterContents.map(chapter => chapter.title)
+    // });
 
     // Get the appropriate adapter for this model
     const adapter = getAdapterForModel(model);
