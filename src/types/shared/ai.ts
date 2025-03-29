@@ -11,6 +11,8 @@ export type AIActionParams =
   | { type: typeof ACTION_TYPES.KEYPOINTS; count?: number }
   | { type: typeof ACTION_TYPES.TOPICS }
   | { type: typeof ACTION_TYPES.KEYTAKEAWAY }
+  | { type: typeof ACTION_TYPES.PODCASTQA }
+  | { type: typeof ACTION_TYPES.QUESTIONDEEPDIVE; question: string; chapterTitle: string; chapterContent?: string; videoId?: string }
 
 // Define specific response types for each action
 export interface SummaryResponseData {
@@ -55,6 +57,34 @@ export interface KeyTakeawayResponseData {
   categories: TakeawayCategory[];
 }
 
+export interface QAItem {
+  question: string;
+  answer: string;
+  quotes: string[];
+}
+
+export interface QAChapter {
+  chapterTitle: string;
+  qaItems: QAItem[];
+}
+
+export interface PodcastQAResponseData {
+  chapters: QAChapter[];
+}
+
+export interface DeepDiveAnswer {
+  shortAnswer: string;
+  detailedPoints: string[];
+  quotes: string[];
+  additionalContext?: string;
+}
+
+export interface QuestionDeepDiveResponseData {
+  question: string;
+  chapterTitle: string;
+  answer: DeepDiveAnswer;
+}
+
 // Base interface for all AI responses with metadata
 export interface AIResponseBase {
   isCached?: boolean;
@@ -72,6 +102,8 @@ export type QuestionResponse = AIResponse<string>;
 export type KeypointsResponse = AIResponse<KeypointItem[]>;
 export type TopicsResponse = AIResponse<TopicsResponseData>;
 export type KeyTakeawayResponse = AIResponse<KeyTakeawayResponseData>;
+export type PodcastQAResponse = AIResponse<PodcastQAResponseData>;
+export type QuestionDeepDiveResponse = AIResponse<QuestionDeepDiveResponseData>;
 
 // Chapter content with transcript mapped to it
 export interface ChapterContent {

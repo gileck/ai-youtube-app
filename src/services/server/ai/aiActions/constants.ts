@@ -16,6 +16,8 @@ import { ACTION_TYPE as QUESTION_TYPE } from './question/constants';
 import { ACTION_TYPE as KEYPOINTS_TYPE } from './keypoints/constants';
 import { ACTION_TYPE as TOPICS_TYPE } from './topics/constants';
 import { ACTION_TYPE as KEYTAKEAWAY_TYPE } from './keytakeaway/constants';
+import { ACTION_TYPE as PODCASTQA_TYPE } from './podcastqa/constants';
+import { ACTION_TYPE as QUESTIONDEEPDIVE_TYPE } from './questiondeepdive/constants';
 
 // Build the ACTION_TYPES object dynamically
 const actionTypes = {
@@ -24,6 +26,8 @@ const actionTypes = {
   KEYPOINTS: KEYPOINTS_TYPE,
   TOPICS: TOPICS_TYPE,
   KEYTAKEAWAY: KEYTAKEAWAY_TYPE,
+  PODCASTQA: PODCASTQA_TYPE,
+  QUESTIONDEEPDIVE: QUESTIONDEEPDIVE_TYPE,
 } as const;
 
 // Export the ACTION_TYPES object
@@ -47,7 +51,7 @@ export function getActionTypeKey(actionType: ActionType): keyof typeof ACTION_TY
   const entries = Object.entries(ACTION_TYPES);
   const entry = entries.find(([, value]) => value === actionType);
   if (!entry) {
-    throw new Error(`Unknown action type: ${actionType}`);
+    throw new Error(`Invalid action type: ${actionType}`);
   }
   return entry[0] as keyof typeof ACTION_TYPES;
 }

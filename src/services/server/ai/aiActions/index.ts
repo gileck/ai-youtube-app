@@ -17,6 +17,8 @@ import questionProcessor, { ACTION_TYPE as QUESTION_TYPE } from './question';
 import keypointsProcessor, { ACTION_TYPE as KEYPOINTS_TYPE } from './keypoints';
 import topicsProcessor, { ACTION_TYPE as TOPICS_TYPE } from './topics';
 import keyTakeawayProcessor, { ACTION_TYPE as KEYTAKEAWAY_TYPE } from './keytakeaway';
+import podcastQAProcessor, { ACTION_TYPE as PODCASTQA_TYPE } from './podcastqa';
+import questionDeepDiveProcessor, { ACTION_TYPE as QUESTIONDEEPDIVE_TYPE } from './questiondeepdive';
 
 // Export all action types for use in other parts of the application
 export { ACTION_TYPES } from './constants';
@@ -42,6 +44,8 @@ export const processors: Record<string, BaseAIActionProcessor> = {
   [KEYPOINTS_TYPE]: keypointsProcessor,
   [TOPICS_TYPE]: topicsProcessor,
   [KEYTAKEAWAY_TYPE]: keyTakeawayProcessor,
+  [PODCASTQA_TYPE]: podcastQAProcessor,
+  [QUESTIONDEEPDIVE_TYPE]: questionDeepDiveProcessor,
   // Sentiment processor not implemented yet
   // When adding a new action, it will be automatically included here
   // if it follows the folder structure convention

@@ -37,7 +37,7 @@ export async function POST(
       costApprovalThreshold,
       approved = false,
       skipCache = false,
-      ...actionParams
+      params: actionParams
     } = body;
 
     // Validate required parameters

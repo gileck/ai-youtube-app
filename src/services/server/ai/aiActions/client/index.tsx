@@ -8,6 +8,7 @@ import QuestionRenderer, { QuestionActionMeta } from '../question/client/Questio
 import KeypointsRenderer, { KeypointsActionMeta } from '../keypoints/client/KeypointsAction';
 import TopicsRenderer, { TopicsActionMeta } from '../topics/client/TopicsAction';
 import KeyTakeawayRenderer, { KeyTakeawayActionMeta, KeyTakeawayRendererProps } from '../keytakeaway/client/KeyTakeawayAction';
+import PodcastQARenderer, { PodcastQAActionMeta, PodcastQARendererProps } from '../podcastqa/client/PodcastQAAction';
 
 /**
  * Define the props for all action renderers
@@ -64,11 +65,31 @@ export const AI_ACTIONS: Record<string, {
     icon: KeyTakeawayActionMeta.icon,
     description: KeyTakeawayActionMeta.description,
     renderResult: (props) => <KeyTakeawayRenderer {...props as unknown as KeyTakeawayRendererProps} />
+  },
+  [PodcastQAActionMeta.key]: {
+    label: PodcastQAActionMeta.label,
+    icon: PodcastQAActionMeta.icon,
+    description: PodcastQAActionMeta.description,
+    renderResult: (props) => <PodcastQARenderer {...props as unknown as PodcastQARendererProps} />
   }
 };
 
 // Export individual renderers
-export { SummaryRenderer, QuestionRenderer, KeypointsRenderer, TopicsRenderer, KeyTakeawayRenderer };
+export { 
+  SummaryRenderer, 
+  QuestionRenderer, 
+  KeypointsRenderer, 
+  TopicsRenderer, 
+  KeyTakeawayRenderer,
+  PodcastQARenderer
+};
 
 // Export metadata
-export { SummaryActionMeta, QuestionActionMeta, KeypointsActionMeta, TopicsActionMeta, KeyTakeawayActionMeta };
+export { 
+  SummaryActionMeta, 
+  QuestionActionMeta, 
+  KeypointsActionMeta, 
+  TopicsActionMeta, 
+  KeyTakeawayActionMeta,
+  PodcastQAActionMeta
+};

@@ -238,7 +238,7 @@ export class GeminiAdapter implements SpecificModelAdapter {
   ): Promise<Omit<AIModelJSONResponse<T>, 'isCached'>> {
     // Default options
     const defaultOptions = {
-      maxTokens: 100_000
+      maxTokens: 1_000_000
     };
 
     // Merge with provided options
@@ -246,6 +246,9 @@ export class GeminiAdapter implements SpecificModelAdapter {
       ...defaultOptions,
       ...options
     };
+
+    console.log({ mergedOptions });
+
 
     // Get the actual API model ID
     const apiModelId = this.mapModelIdToApiId(modelId);
@@ -280,7 +283,9 @@ export class GeminiAdapter implements SpecificModelAdapter {
       try {
         json = JSON.parse(responseText) as T;
       } catch (e) {
-        console.error('Failed to parse JSON response:', e);
+
+        console.log('Failed to parse JSON response:', e);
+        console.log('Response Text:', responseText);
 
         throw new Error('Failed to parse JSON response from Gemini API');
       }

@@ -13,6 +13,7 @@ import {
   SelectChangeEvent
 } from '@mui/material';
 import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined';
+import QuestionAnswerIcon from '@mui/icons-material/QuestionAnswer';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useApiClient } from '../../contexts/ApiContext';
 import { AIActionParams, AIActionResponse } from '../../services/client/ai/types';
@@ -20,7 +21,8 @@ import { addHistoryItem } from '../../services/client/historyService';
 import { ACTION_TYPES } from '../../services/server/ai/aiActions/constants';
 import AIActionWrapper from './AIActionWrapper';
 import { CompactKeyTakeawayRenderer } from '../../services/server/ai/aiActions/keytakeaway/client/CompactKeyTakeawayRenderer';
-import { KeyTakeawayResponseData } from '../../types/shared/ai';
+import { CompactPodcastQARenderer } from '../../services/server/ai/aiActions/podcastqa/client/CompactPodcastQARenderer';
+import { KeyTakeawayResponseData, PodcastQAResponseData } from '../../types/shared/ai';
 
 interface CompactVideoActionsProps {
   videoId: string;
@@ -35,6 +37,11 @@ const COMPACT_AI_ACTIONS = {
     label: 'Key Takeaways',
     icon: <LightbulbOutlinedIcon fontSize="small" />,
     description: 'Extract actionable recommendations'
+  },
+  [ACTION_TYPES.PODCASTQA]: {
+    label: 'Podcast Q&A',
+    icon: <QuestionAnswerIcon fontSize="small" />,
+    description: 'Extract questions and answers from podcast interviews'
   }
 };
 
@@ -59,6 +66,8 @@ export const CompactVideoActions: React.FC<CompactVideoActionsProps> = ({
       // Find the action type from the existing result
       if (existingResult.categories) {
         setActiveAction(ACTION_TYPES.KEYTAKEAWAY);
+      } else if (existingResult.chapters) {
+        setActiveAction(ACTION_TYPES.PODCASTQA);
       }
     }
   }, [existingResult]);
@@ -76,6 +85,8 @@ export const CompactVideoActions: React.FC<CompactVideoActionsProps> = ({
     switch (action) {
       case ACTION_TYPES.KEYTAKEAWAY:
         return { type: ACTION_TYPES.KEYTAKEAWAY };
+      case ACTION_TYPES.PODCASTQA:
+        return { type: ACTION_TYPES.PODCASTQA };
       default:
         throw new Error(`Unsupported action type: ${action}`);
     }
@@ -165,27 +176,47 @@ export const CompactVideoActions: React.FC<CompactVideoActionsProps> = ({
     // Get cache status from the response data
     const isCached = response?.data?.isCached || false;
     
-    // For now, we only support key takeaways
-    if (activeAction === ACTION_TYPES.KEYTAKEAWAY) {
-      // Cast the result to KeyTakeawayResponse
-      const keyTakeawayResult = result as unknown as KeyTakeawayResponseData;
+    // Render based on the active action
+    switch (activeAction) {
+      case ACTION_TYPES.KEYTAKEAWAY:
+        // Cast the result to KeyTakeawayResponse
+        const keyTakeawayResult = result as unknown as KeyTakeawayResponseData;
+        
+        return (
+          <AIActionWrapper 
+            cost={response?.data?.cost} 
+            model={settings.aiModel}
+            actionType={COMPACT_AI_ACTIONS[ACTION_TYPES.KEYTAKEAWAY].label}
+            isCached={isCached}
+          >
+            <CompactKeyTakeawayRenderer 
+              result={{ categories: keyTakeawayResult.categories || [] }} 
+              videoId={videoId} 
+            />
+          </AIActionWrapper>
+        );
       
-      return (
-        <AIActionWrapper 
-          cost={response?.data?.cost} 
-          model={settings.aiModel}
-          actionType={COMPACT_AI_ACTIONS[ACTION_TYPES.KEYTAKEAWAY].label}
-          isCached={isCached}
-        >
-          <CompactKeyTakeawayRenderer 
-            result={{ categories: keyTakeawayResult.categories || [] }} 
-            videoId={videoId} 
-          />
-        </AIActionWrapper>
-      );
+      case ACTION_TYPES.PODCASTQA:
+        // Cast the result to PodcastQAResponse
+        const podcastQAResult = result as unknown as PodcastQAResponseData;
+        
+        return (
+          <AIActionWrapper 
+            cost={response?.data?.cost} 
+            model={settings.aiModel}
+            actionType={COMPACT_AI_ACTIONS[ACTION_TYPES.PODCASTQA].label}
+            isCached={isCached}
+          >
+            <CompactPodcastQARenderer 
+              result={{ chapters: podcastQAResult.chapters || [] }} 
+              videoId={videoId} 
+            />
+          </AIActionWrapper>
+        );
+      
+      default:
+        return null;
     }
-    
-    return null;
   };
 
   return (
